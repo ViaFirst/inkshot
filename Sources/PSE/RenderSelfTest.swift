@@ -7,6 +7,14 @@ enum RenderSelfTest {
     /// Returns true when a test needs the run loop (it exits by itself when done).
     static func runIfRequested() -> Bool {
         let args = CommandLine.arguments
+        if let i = args.firstIndex(of: "--web-probe"), i + 1 < args.count {
+            Task { @MainActor in
+                let r = WebPageRenderer(width: 1280, mobile: false)
+                print(await r.probe(URL(string: args[i + 1])!))
+                exit(0)
+            }
+            return true
+        }
         if let i = args.firstIndex(of: "--web-test"), i + 2 < args.count {
             webTest(url: args[i + 1], out: args[i + 2], width: args.dropFirst(i + 3).first.flatMap { Double($0) } ?? 1280,
                     mobile: args.contains("mobile"))

@@ -61,13 +61,30 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 "
                 + "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
         }
-        // WebKit lays out and paints more reliably inside a window; keep it far off-screen.
-        host = NSWindow(contentRect: frame.offsetBy(dx: -30000, dy: -30000), styleMask: .borderless,
+        // The page needs a real window on a real display: requestAnimationFrame (GSAP, scroll-reveal
+        // animations) is driven by the display the window is on, so an off-screen window never
+        // animates. Put it on the main screen but below the desktop, where nobody sees it.
+        let origin = NSScreen.screens.first?.frame.origin ?? .zero
+        host = NSWindow(contentRect: CGRect(origin: origin, size: frame.size), styleMask: .borderless,
                         backing: .buffered, defer: false)
+        host.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) - 1)
+        host.ignoresMouseEvents = true
+        host.hasShadow = false
+        host.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         host.isReleasedWhenClosed = false
         host.contentView = webView
         super.init()
         webView.navigationDelegate = self
+        // An off-screen window counts as occluded, and WebKit then stops requestAnimationFrame:
+        // GSAP/scroll-reveal content would stay invisible. Turn occlusion detection off (WebKit SPI,
+        // guarded so a future WebKit without it just skips this).
+        let occlusion = NSSelectorFromString("_setWindowOcclusionDetectionEnabled:")
+        if webView.responds(to: occlusion) {
+            typealias SetBool = @convention(c) (AnyObject, Selector, Bool) -> Void
+            unsafeBitCast(webView.method(for: occlusion), to: SetBool.self)(webView, occlusion, false)
+        } else if ProcessInfo.processInfo.environment["PSE_DEBUG"] != nil {
+            FileHandle.standardError.write("no _setWindowOcclusionDetectionEnabled:\n".data(using: .utf8)!)
+        }
         host.orderFrontRegardless()
     }
 
@@ -104,7 +121,9 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             attempt += 1
             attempts = attempt
             let pageHeight = try await pageHeight()
-            if let result = try await snapshotTiles(height: pageHeight, scale: scale, strict: attempt < 4) {
+            // Pages with live blocks (typing effects, tickers) never fully settle; a third pass
+            // doesn't help them, so the second pass is accepted as is.
+            if let result = try await snapshotTiles(height: pageHeight, scale: scale, strict: attempt < 2) {
                 return result
             }
             try await Task.sleep(nanoseconds: 1_000_000_000)
@@ -141,6 +160,10 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             try checkCancelled()
             if let failure { throw failure }
             if finished { return }
+            // Before the navigation commits, the view still shows about:blank, which is "complete"
+            // right away: only trust readyState once the real page is there.
+            let href = (try? await webView.evaluateJavaScript("location.href") as? String) ?? "about:blank"
+            guard href.hasPrefix("http") || href.hasPrefix("file") else { continue }
             let state = (try? await webView.evaluateJavaScript("document.readyState") as? String) ?? ""
             if state == "complete" { return }
             if state == "interactive" {
@@ -168,6 +191,8 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
 
         let config = WKSnapshotConfiguration()
         config.afterScreenUpdates = true
+        _ = try? await webView.evaluateJavaScript(Self.showFixedScript)
+        _ = try? await webView.evaluateJavaScript(Self.hideConsentScript)
         var y: CGFloat = 0
         var first = true
         var layout: String?
@@ -193,11 +218,21 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             // 'instant' overrides CSS smooth scrolling; the position is read only after it settled
             // and checked again after the snapshot.
             _ = try? await webView.evaluateJavaScript(
-                "document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo({top: \(Int(y)), behavior: 'instant'}); true")
+                "document.documentElement.style.scrollBehavior = 'auto';"
+                // No scroll anchoring: animated blocks above (typing terminals, tickers) must not
+                // nudge the scroll position while we snapshot.
+                + "document.documentElement.style.overflowAnchor = 'none'; document.body.style.overflowAnchor = 'none';"
+                + "window.scrollTo({top: \(Int(y)), behavior: 'instant'}); true")
             try await Task.sleep(nanoseconds: 350_000_000) // let scroll-triggered animations settle
             let actual = try await scrollY()
             let shot = try await webView.takeSnapshot(configuration: config)
-            if strict, try await scrollY() != actual { return nil }
+            let after = try await scrollY()
+            if strict, after != actual {
+                if ProcessInfo.processInfo.environment["PSE_DEBUG"] != nil {
+                    FileHandle.standardError.write("scroll moved during snapshot at y=\(Int(y)): \(actual) -> \(after)\n".data(using: .utf8)!)
+                }
+                return nil
+            }
             guard let cg = shot.cgImage(forProposedRect: nil, context: nil, hints: nil) else { throw Failure.empty }
             // CG origin is bottom-left: a tile at page offset `actual` sits (height - actual - viewport) up.
             let tile = CGRect(x: 0, y: (height - actual - viewportHeight) * scale,
@@ -223,9 +258,10 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             if (!window.__pseEls) window.__pseEls = Array.from(document.querySelectorAll('img, h1, h2, h3, article, section'))
                 .filter(e => !pinned(e)).slice(0, 120);
             const els = window.__pseEls;
-            // Invisible elements (tracking pixels, display:none) report top = 0 wherever we scroll.
-            const tops = els.map(e => { const r = e.getBoundingClientRect();
-                return r.width && r.height ? Math.round(r.top + window.scrollY) : 'x'; });
+            // Layout position (offsetTop chain): ignores transforms, so reveal animations that slide
+            // content in don't count as a layout change. Invisible elements are skipped.
+            const top = e => { let y = 0; for (; e; e = e.offsetParent) y += e.offsetTop; return y; };
+            const tops = els.map(e => e.offsetWidth && e.offsetHeight ? top(e) : 'x');
             return document.documentElement.scrollHeight + ':' + tops.join(',');
         })()
         """
@@ -233,10 +269,52 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
     private static let hideFixedScript = """
         for (const el of document.querySelectorAll('body *')) {
             const p = getComputedStyle(el).position;
-            if (p === 'fixed' || p === 'sticky') el.style.setProperty('visibility', 'hidden', 'important');
+            if ((p === 'fixed' || p === 'sticky') && !el.hasAttribute('data-pse-hidden')) {
+                el.setAttribute('data-pse-hidden', el.style.visibility || '');
+                el.style.setProperty('visibility', 'hidden', 'important');
+            }
         }
         true
         """
+
+    /// Cookie / consent banners: fixed elements whose id or class says so are hidden everywhere,
+    /// including the first viewport.
+    private static let hideConsentScript = """
+        for (const el of document.querySelectorAll('body *')) {
+            if (getComputedStyle(el).position !== 'fixed') continue;
+            const name = (el.id + ' ' + (typeof el.className === 'string' ? el.className : '')).toLowerCase();
+            if (/cookie|consent|gdpr|\\bcmp\\b/.test(name)) el.style.setProperty('display', 'none', 'important');
+        }
+        true
+        """
+
+    /// Undoes hideFixedScript before a new pass, so the header is in the first viewport again.
+    private static let showFixedScript = """
+        for (const el of document.querySelectorAll('[data-pse-hidden]')) {
+            el.style.visibility = el.getAttribute('data-pse-hidden');
+            el.removeAttribute('data-pse-hidden');
+        }
+        true
+        """
+
+    /// Diagnostics: animation frames per second, libraries and hidden content on the page.
+    func probe(_ url: URL) async -> String {
+        try? await waitForLoad(url)
+        var out: [String] = []
+        func js(_ code: String) async -> String {
+            do { return "\(try await webView.evaluateJavaScript(code) ?? "nil")" } catch { return "ERR \(error.localizedDescription)" }
+        }
+        out.append("url: " + (await js("location.href")))
+        out.append("visibility: " + (await js("document.visibilityState + ' hidden=' + document.hidden")))
+        _ = await js("window.__raf = 0; (function f(){ window.__raf++; requestAnimationFrame(f); })(); window.__t = 0; setInterval(() => window.__t++, 100); true")
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        out.append("rAF/s: " + (await js("window.__raf")) + ", timers/s: " + (await js("window.__t")))
+        out.append("libs: " + (await js("JSON.stringify({gsap: !!window.gsap, st: !!window.ScrollTrigger, lenis: !!(window.lenis || window.Lenis)})")))
+        out.append("opacity0: " + (await js("Array.from(document.querySelectorAll('section, h2, p')).filter(e => getComputedStyle(e).opacity === '0').length + ' of ' + document.querySelectorAll('section, h2, p').length")))
+        out.append("fixed: " + (await js("Array.from(document.querySelectorAll('body *')).filter(e => ['fixed','sticky'].includes(getComputedStyle(e).position)).map(e => e.tagName + '.' + e.className).slice(0,5).join(' | ')")))
+        out.append("scroller: " + (await js("JSON.stringify({docH: document.documentElement.scrollHeight, bodyH: document.body.scrollHeight, htmlOverflow: getComputedStyle(document.documentElement).overflow, bodyOverflow: getComputedStyle(document.body).overflow, winH: innerHeight})")))
+        return out.joined(separator: "\n")
+    }
 
     private func checkCancelled() throws {
         if cancelled { throw CancellationError() }
