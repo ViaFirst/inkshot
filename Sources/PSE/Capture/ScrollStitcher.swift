@@ -29,6 +29,12 @@ final class ScrollStitcher: @unchecked Sendable {
     private var footer = 0
     private var moving = false
 
+    // Per-column evidence for the auto-crop: in how many scroll steps a column moved with the
+    // page or stayed put (fixed sidebar, "back to top" button).
+    private var movingSteps: [Int] = []
+    private var staticSteps: [Int] = []
+    private var steps = 0
+
     init(scale: CGFloat) {
         self.scale = scale
     }
@@ -62,6 +68,7 @@ final class ScrollStitcher: @unchecked Sendable {
         let end = height - footer
         let start = max(0, end - dy)
         guard output.count + (end - start + footer) * rowBytes <= maxBytes else { return .full }
+        collectColumnEvidence(old: previous, new: pixels, dy: dy, header: staticTopRows(hashes))
         append(pixels, rows: start..<end)
         previous = pixels
         previousHashes = hashes
@@ -82,7 +89,65 @@ final class ScrollStitcher: @unchecked Sendable {
                        decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 
+    /// Columns of the main scrolling content, or nil when there's nothing worth cutting.
+    /// Keeps columns that moved in most scroll steps and were almost never static, plus a few
+    /// points of quiet margin; side bands that were fixed, or only moved for a while (a sidebar
+    /// that scrolled away and left an empty strip), are cut off.
+    func suggestedColumns() -> Range<Int>? {
+        guard steps >= 2, let most = movingSteps.max(), most >= 2 else { return nil }
+        let needed = Int((Double(most) * 0.6).rounded(.up))
+        let core = (0..<width).filter { movingSteps[$0] >= needed && staticSteps[$0] * 5 <= steps }
+        guard var lo = core.first, var hi = core.last else { return nil }
+
+        let pad = Int(8 * scale)
+        var k = 0
+        while lo > 0, k < pad, staticSteps[lo - 1] == 0 { lo -= 1; k += 1 }
+        k = 0
+        while hi < width - 1, k < pad, staticSteps[hi + 1] == 0 { hi += 1; k += 1 }
+
+        let minCut = Int(8 * scale)
+        let left = lo >= minCut ? lo : 0
+        let right = width - 1 - hi >= minCut ? hi + 1 : width
+        guard left > 0 || right < width, right - left >= width / 4 else { return nil }
+        return left..<right
+    }
+
     // MARK: Internals
+
+    /// Leading rows identical at the same position (sticky header); they'd look "static" everywhere.
+    private func staticTopRows(_ hashes: [UInt64]) -> Int {
+        var top = 0
+        while top < height / 3, rowsEqual(hashes, previousHashes, row: top) { top += 1 }
+        return top
+    }
+
+    private func collectColumnEvidence(old: [UInt8], new: [UInt8], dy: Int, header: Int) {
+        if movingSteps.isEmpty {
+            movingSteps = [Int](repeating: 0, count: width)
+            staticSteps = [Int](repeating: 0, count: width)
+        }
+        let rows = height - footer - dy
+        guard rows - header > 8 else { return }
+        var same = [Int](repeating: 0, count: width)
+        var shifted = [Int](repeating: 0, count: width)
+        old.withUnsafeBytes { o in
+            new.withUnsafeBytes { n in
+                let op = o.bindMemory(to: UInt32.self), np = n.bindMemory(to: UInt32.self)
+                for r in stride(from: header, to: rows, by: 2) {
+                    let a = r * width, b = (r + dy) * width
+                    for x in 0..<width {
+                        let v = np[a + x], stay = op[a + x], move = op[b + x]
+                        if v == stay, v != move { same[x] += 1 } else if v == move, v != stay { shifted[x] += 1 }
+                    }
+                }
+            }
+        }
+        for x in 0..<width {
+            if shifted[x] >= 4, shifted[x] >= same[x] * 3 { movingSteps[x] += 1 }
+            else if same[x] >= 4, same[x] >= shifted[x] * 3 { staticSteps[x] += 1 }
+        }
+        steps += 1
+    }
 
     private static let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue
         | CGBitmapInfo.byteOrder32Little.rawValue)

@@ -6,7 +6,8 @@ import ScreenCaptureKit
 /// show up in the frames. The panel is non-activating: the scrolled app stays frontmost.
 @MainActor
 final class ScrollCaptureSession {
-    var onFinish: ((CGImage?) -> Void)?
+    /// Stitched image and the suggested crop (main scrolling column), nil when cancelled.
+    var onFinish: ((CGImage?, CGRect?) -> Void)?
 
     private let displayID: CGDirectDisplayID
     private let displayFrame: CGRect   // global CG coordinates
@@ -61,6 +62,7 @@ final class ScrollCaptureSession {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
             guard let display = content.displays.first(where: { $0.displayID == displayID }) else { return end(nil) }
+
             let pid = ProcessInfo.processInfo.processIdentifier
             let filter = SCContentFilter(display: display,
                                          excludingApplications: content.applications.filter { $0.processID == pid },
@@ -92,10 +94,13 @@ final class ScrollCaptureSession {
         }
         if cancelled { return end(nil) }
         let stitcher = stitcher
-        let image = await withCheckedContinuation { cont in
-            stitchQueue.async { cont.resume(returning: stitcher.makeImage()) }
+        let (image, columns) = await withCheckedContinuation { cont in
+            stitchQueue.async { cont.resume(returning: (stitcher.makeImage(), stitcher.suggestedColumns())) }
         }
-        end(image)
+        let crop = image.flatMap { img in
+            columns.map { CGRect(x: $0.lowerBound, y: 0, width: $0.count, height: img.height) }
+        }
+        end(image, crop: crop)
     }
 
     private func stitch(_ image: CGImage) async -> (ScrollStitcher.Result, Int) {
@@ -179,14 +184,14 @@ final class ScrollCaptureSession {
         }) { keyMonitors.append(local) }
     }
 
-    private func end(_ image: CGImage?) {
+    private func end(_ image: CGImage?, crop: CGRect? = nil) {
         keyMonitors.forEach(NSEvent.removeMonitor)
         keyMonitors.removeAll()
         border?.orderOut(nil)
         panel?.orderOut(nil)
         border = nil
         panel = nil
-        onFinish?(image)
+        onFinish?(image, crop)
         onFinish = nil
     }
 }

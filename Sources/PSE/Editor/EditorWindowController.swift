@@ -15,13 +15,17 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
 
     private static let lastFolderKey = "lastSaveFolder"
 
-    init(item: HistoryItem, image: CGImage, edits: EditState?, history: HistoryStore, screen: NSScreen?) {
+    /// `suggestedCrop` (auto-crop of a scrolling capture) is applied as a normal undoable step.
+    init(item: HistoryItem, image: CGImage, edits: EditState?, history: HistoryStore, screen: NSScreen?,
+         suggestedCrop: CGRect? = nil) {
         let scale = item.scale
         itemID = item.id
         capturedAt = item.createdAt
         self.history = history
-        model = EditorModel(image: image, scale: scale)
+        let model = EditorModel(image: image, scale: scale)
         if let edits { model.load(edits) }
+        if let suggestedCrop { model.commit { model.crop = suggestedCrop } }
+        self.model = model
         canvas = CanvasView(model: model)
 
         let screen = screen ?? NSScreen.main
@@ -74,6 +78,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         canvas.onSave = { [weak self] in self?.save() }
         canvas.onClose = { [weak self] in self?.close() }
         model.onCommit = { [weak self] in self?.scheduleSync() }
+        if suggestedCrop != nil { scheduleSync() }
     }
 
     required init?(coder: NSCoder) { fatalError() }

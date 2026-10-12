@@ -7,7 +7,8 @@ enum CaptureMode {
 /// Freezes all displays, shows an overlay per screen and hands the chosen region to the editor.
 @MainActor
 final class CaptureController {
-    var onCaptured: ((CGImage, CGFloat, NSScreen?) -> Void)?
+    /// Image, its scale, the screen it came from, and an optional suggested crop (scrolling captures).
+    var onCaptured: ((CGImage, CGFloat, NSScreen?, CGRect?) -> Void)?
     var onCancel: (() -> Void)?
 
     private(set) var mode: CaptureMode = .area
@@ -30,7 +31,7 @@ final class CaptureController {
                 if fullScreen {
                     busy = false
                     if let shot = shots.first(where: { $0.displayID == mouseScreen?.displayID }) ?? shots.first {
-                        onCaptured?(shot.image, shot.scale, mouseScreen)
+                        onCaptured?(shot.image, shot.scale, mouseScreen, nil)
                     }
                 } else {
                     present(shots: shots, windows: windows, mouseScreen: mouseScreen)
@@ -54,7 +55,7 @@ final class CaptureController {
         let screen = view.window?.screen
         guard let image = view.shot.image.cropping(to: pixels) else { return cancel() }
         close()
-        onCaptured?(image, s, screen)
+        onCaptured?(image, s, screen, nil)
     }
 
     func cancel() {
@@ -72,12 +73,12 @@ final class CaptureController {
 
         let session = ScrollCaptureSession(displayID: shot.displayID, displayFrame: shot.frame,
                                            region: rect, scale: shot.scale, screen: screen)
-        session.onFinish = { [weak self] image in
+        session.onFinish = { [weak self] image, crop in
             guard let self else { return }
             self.scrollSession = nil
             self.busy = false
             if let image {
-                self.onCaptured?(image, shot.scale, screen)
+                self.onCaptured?(image, shot.scale, screen, crop)
             } else {
                 self.onCancel?()
             }

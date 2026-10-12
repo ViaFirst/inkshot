@@ -21,11 +21,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
 
-        capture.onCaptured = { [weak self] image, scale, screen in
+        capture.onCaptured = { [weak self] image, scale, screen, crop in
             guard let self else { return }
             ImageExport.copyToPasteboard(image, scale: scale)
             let item = self.history.add(image: image, scale: scale)
-            self.openEditor(item: item, image: image, edits: nil, screen: screen)
+            self.openEditor(item: item, image: image, edits: nil, screen: screen, suggestedCrop: crop)
         }
         capture.onCancel = { [weak self] in self?.restoreFocusIfIdle() }
 
@@ -161,8 +161,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: Editors
 
-    private func openEditor(item: HistoryItem, image: CGImage, edits: EditState?, screen: NSScreen?) {
-        let editor = EditorWindowController(item: item, image: image, edits: edits, history: history, screen: screen)
+    private func openEditor(item: HistoryItem, image: CGImage, edits: EditState?, screen: NSScreen?,
+                            suggestedCrop: CGRect? = nil) {
+        let editor = EditorWindowController(item: item, image: image, edits: edits, history: history,
+                                            screen: screen, suggestedCrop: suggestedCrop)
         editor.onClose = { [weak self, weak editor] in
             guard let self, let editor else { return }
             self.editors.removeAll { $0 === editor }

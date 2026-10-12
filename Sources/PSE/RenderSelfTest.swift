@@ -86,7 +86,6 @@ enum RenderSelfTest {
     private static func stitchTest() {
         func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
         let w = 600, h = 500, header = 60, footer = 40, view = h - header - footer
-        let pageRows = 3000
         let space = CGColorSpace(name: CGColorSpace.sRGB)!
         func noise(_ a: Int, _ b: Int) -> UInt32 {
             var x = UInt32(truncatingIfNeeded: a &* 73856093 ^ b &* 19349663)
@@ -150,6 +149,52 @@ enum RenderSelfTest {
             }
         }
         check(mismatches == 0, "pixel-exact page, header and footer once (\(mismatches) wrong pixels)")
+        check(stitcher.suggestedColumns() == nil, "full-width content: no auto-crop")
+        sidebarTest()
         exit(0)
+    }
+
+    /// Like 3dnews: a left menu that scrolls away, a fixed "back to top" button, a fixed right
+    /// panel and the main column in the middle. Auto-crop should keep only the middle.
+    private static func sidebarTest() {
+        func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
+        let w = 700, h = 500
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        func noise(_ a: Int, _ b: Int) -> UInt32 {
+            var x = UInt32(truncatingIfNeeded: a &* 73856093 ^ b &* 19349663)
+            x ^= x >> 13; x = x &* 0x5bd1e995; x ^= x >> 15
+            return x
+        }
+        let dark: UInt32 = 0xFF22_2222
+        func frame(offset o: Int) -> CGImage {
+            var px = [UInt32](repeating: dark, count: w * h)
+            for y in 0..<h {
+                let page = o + y
+                for x in 0..<w {
+                    var v = dark
+                    if x < 140 {
+                        if page < 600, noise(x / 5, page / 3) % 3 == 0 { v = 0xFF66_99FF } // menu, scrolls away
+                        if (380..<400).contains(y), (50..<90).contains(x) { v = 0xFFEE_EEEE } // fixed button
+                    } else if (160..<580).contains(x) {
+                        v = noise(x / 6, page / 2) % 3 == 0 ? 0xFFF0_F0F0 : 0xFF30_3040      // main column
+                    } else if x >= 600 {
+                        v = noise(x / 4, y / 3) % 2 == 0 ? 0xFF99_9999 : 0xFF44_4444          // fixed panel
+                    }
+                    px[y * w + x] = v
+                }
+            }
+            let data = Data(bytes: px, count: px.count * 4)
+            return CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4, space: space,
+                           bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue),
+                           provider: CGDataProvider(data: data as CFData)!, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
+        }
+        let stitcher = ScrollStitcher(scale: 2)
+        for o in stride(from: 0, through: 2400, by: 200) { _ = stitcher.add(frame(offset: o)) }
+        let cols = stitcher.suggestedColumns()
+        print("suggested columns:", cols.map { "\($0.lowerBound)..<\($0.upperBound)" } ?? "none")
+        guard let cols else { return check(false, "auto-crop suggested") }
+        check((130...160).contains(cols.lowerBound), "left menu + fixed button cut off")
+        check((580...600).contains(cols.upperBound), "fixed right panel cut off")
+
     }
 }
