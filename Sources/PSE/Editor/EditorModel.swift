@@ -58,9 +58,8 @@ final class EditorModel: ObservableObject {
                                       space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
             else { return }
             ctx.interpolationQuality = .medium
-            // CG draws bottom-up; flip so row 0 is the top like the image coordinates.
-            ctx.translateBy(x: 0, y: CGFloat(h))
-            ctx.scaleBy(x: 1, y: -1)
+            // Drawn unflipped: a bitmap context's first memory row is the image's top row,
+            // which matches the top-left image coordinates used by annotations.
             ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
         }
         return (pixels, w, h, k)

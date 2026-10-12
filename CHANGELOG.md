@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.2 — 2026-10-12
+- Fix the adaptive highlighter reading brightness upside down; README with icon and screenshots (--readme-shots).
+
 ## 0.6.1 — 2026-10-12
 - App icon: a tilted screenshot card in viewfinder corners, highlighted and pointed at by an annotation arrow.
 

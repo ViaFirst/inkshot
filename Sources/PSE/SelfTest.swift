@@ -22,6 +22,11 @@ enum SelfTest {
         }
         if let i = args.firstIndex(of: "--loupe-test"), i + 1 < args.count { loupeTest(out: args[i + 1]) }
         if let i = args.firstIndex(of: "--highlight-test"), i + 1 < args.count { highlightTest(out: args[i + 1]) }
+        if let i = args.firstIndex(of: "--readme-shots"), i + 2 < args.count {
+            ReadmeShots.run(demoDesktop: args[i + 1], demoMobile: args[i + 2],
+                            out: args.dropFirst(i + 3).first ?? "docs/images")
+            return true
+        }
         if args.contains("--self-test") {
             // All logic tests; throwaway folders and pasteboards only, never the user's data.
             stitchTest()
@@ -29,6 +34,7 @@ enum SelfTest {
             historyTest(root: dir)
             try? FileManager.default.removeItem(at: dir)
             pasteboardTest()
+            brightnessTest()
             print("ALL PASS")
             exit(0)
         }
@@ -341,5 +347,20 @@ enum SelfTest {
         check(png.map { Int($0.size.width) } == 150, "PNG carries Retina DPI (150 pt wide)")
         check(pb.data(forType: .tiff) != nil, "TIFF on demand")
         pb.releaseGlobally()
+    }
+
+    /// The adaptive highlighter must read brightness from the right place (top vs bottom).
+    private static func brightnessTest() {
+        func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
+        let ctx = CGContext(data: nil, width: 400, height: 400, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        ctx.setFillColor(NSColor.white.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: 400, height: 200))      // CG bottom half = image bottom
+        ctx.setFillColor(NSColor.black.cgColor)
+        ctx.fill(CGRect(x: 0, y: 200, width: 400, height: 200))    // CG top half = image top
+        let model = EditorModel(image: ctx.makeImage()!, scale: 2)
+        check(model.isDark(CGRect(x: 50, y: 50, width: 300, height: 100)), "dark at the top (image coordinates)")
+        check(!model.isDark(CGRect(x: 50, y: 250, width: 300, height: 100)), "light at the bottom")
     }
 }

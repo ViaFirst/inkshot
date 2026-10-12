@@ -73,6 +73,11 @@ final class OverlayView: NSView {
         mouse = p
     }
 
+    /// Self-test hook: show a finished selection.
+    func debugSelect(_ r: CGRect) {
+        selection = r
+    }
+
     required init?(coder: NSCoder) { fatalError() }
 
     override var isFlipped: Bool { true }
