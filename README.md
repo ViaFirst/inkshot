@@ -31,3 +31,5 @@ browser tab's URL).
 
 Debug: `defaults write com.viafirst.pse debugScrollFrames -bool YES` saves scrolling-capture frames
 to `~/Library/Application Support/PSE/Debug/`; replay them with `--replay <dir>`.
+
+License: MIT.
