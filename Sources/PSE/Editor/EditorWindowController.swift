@@ -5,22 +5,29 @@ import UniformTypeIdentifiers
 @MainActor
 final class EditorWindowController: NSWindowController, NSWindowDelegate {
     var onClose: (() -> Void)?
+    let itemID: UUID
 
     private let model: EditorModel
+    private let history: HistoryStore
     private let canvas: CanvasView
     private var pasteboardWork: DispatchWorkItem?
-    private let capturedAt = Date()
+    private let capturedAt: Date
 
     private static let lastFolderKey = "lastSaveFolder"
 
-    init(image: CGImage, scale: CGFloat, screen: NSScreen?) {
+    init(item: HistoryItem, image: CGImage, edits: EditState?, history: HistoryStore, screen: NSScreen?) {
+        let scale = item.scale
+        itemID = item.id
+        capturedAt = item.createdAt
+        self.history = history
         model = EditorModel(image: image, scale: scale)
+        if let edits { model.load(edits) }
         canvas = CanvasView(model: model)
 
         let screen = screen ?? NSScreen.main
         let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
         let toolbarHeight: CGFloat = 46
-        let points = CGSize(width: CGFloat(image.width) / scale, height: CGFloat(image.height) / scale)
+        let points = CGSize(width: model.crop.width / scale, height: model.crop.height / scale)
         let size = CGSize(
             width: min(max(points.width + 32, 820), visible.width * 0.92),
             height: min(max(points.height + 32 + toolbarHeight, 360), visible.height * 0.92)
@@ -31,7 +38,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false
         )
-        window.title = "PSE — \(image.width) × \(image.height)"
+        window.title = "PSE — \(Int(model.crop.width)) × \(Int(model.crop.height))"
         window.minSize = CGSize(width: 760, height: 320)
         window.isReleasedWhenClosed = false
 
@@ -65,7 +72,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         canvas.onCopyAndClose = { [weak self] in self?.copyAndClose() }
         canvas.onSave = { [weak self] in self?.save() }
         canvas.onClose = { [weak self] in self?.close() }
-        model.onCommit = { [weak self] in self?.schedulePasteboardUpdate() }
+        model.onCommit = { [weak self] in self?.scheduleSync() }
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -79,21 +86,26 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         window?.makeFirstResponder(canvas)
     }
 
-    // The pasteboard always holds the latest version, so closing with Esc is fine too.
-    private func schedulePasteboardUpdate() {
+    // The pasteboard and the history always hold the latest version, so closing with Esc is fine too.
+    private func scheduleSync() {
         pasteboardWork?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            ImageExport.copyToPasteboard(self.model.render(), scale: self.model.scale)
-        }
+        let work = DispatchWorkItem { [weak self] in self?.sync() }
         pasteboardWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
 
-    func copyAndClose() {
+    @discardableResult
+    private func sync() -> CGImage {
         pasteboardWork?.cancel()
         pasteboardWork = nil
-        ImageExport.copyToPasteboard(model.render(), scale: model.scale)
+        let image = model.render()
+        ImageExport.copyToPasteboard(image, scale: model.scale)
+        history.update(itemID, edits: model.editState, rendered: image)
+        return image
+    }
+
+    func copyAndClose() {
+        sync()
         close()
     }
 
@@ -109,12 +121,11 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         }
         panel.beginSheetModal(for: window) { [weak self] response in
             guard let self, response == .OK, let url = panel.url else { return }
-            let image = self.model.render()
+            let image = self.sync()
             do {
                 guard let data = ImageExport.pngData(image, scale: self.model.scale) else { return }
                 try data.write(to: url)
                 UserDefaults.standard.set(url.deletingLastPathComponent().path, forKey: Self.lastFolderKey)
-                ImageExport.copyToPasteboard(image, scale: self.model.scale)
                 self.close()
             } catch {
                 NSAlert(error: error).beginSheetModal(for: window)
@@ -123,12 +134,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        // Flush a pending pasteboard update so the last edit isn't lost.
-        if let work = pasteboardWork {
-            pasteboardWork = nil
-            work.cancel()
-            ImageExport.copyToPasteboard(model.render(), scale: model.scale)
-        }
+        // Flush a pending update so the last edit isn't lost.
+        if pasteboardWork != nil { sync() }
         onClose?()
     }
 }

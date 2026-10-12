@@ -45,6 +45,10 @@ enum ImageExport {
 
     static func copyToPasteboard(_ image: CGImage, scale: CGFloat) {
         guard let png = pngData(image, scale: scale) else { return }
+        copyPNGData(png)
+    }
+
+    static func copyPNGData(_ png: Data) {
         let item = NSPasteboardItem()
         item.setData(png, forType: .png)
         if let tiff = NSBitmapImageRep(data: png)?.tiffRepresentation {

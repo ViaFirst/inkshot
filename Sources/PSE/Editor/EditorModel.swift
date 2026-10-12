@@ -134,6 +134,14 @@ final class EditorModel: ObservableObject {
         }
     }
 
+    var editState: EditState { EditState(annotations: annotations, crop: crop) }
+
+    /// Loads saved edits (reopening from history); not an undo step.
+    func load(_ edits: EditState) {
+        annotations = edits.annotations
+        crop = edits.crop
+    }
+
     // MARK: Export
 
     func render() -> CGImage {

@@ -41,3 +41,20 @@
 "Save" = "שמירה";
 "Save as PNG (⌘S)" = "שמירה כ־PNG ‏(⌘S)";
 "Copy and Close (↩ or ⌘C)" = "העתקה וסגירה (↩ או ⌘C)";
+
+/* History */
+"Recent" = "אחרונים";
+"Show History…" = "הצגת ההיסטוריה…";
+"Screenshot History" = "היסטוריית צילומי מסך";
+"Keep last:" = "לשמור את האחרונים:";
+"%d screenshots" = "%d צילומי מסך";
+"Pinned screenshots are never deleted automatically." = "צילומי מסך מוצמדים לעולם אינם נמחקים אוטומטית.";
+"Show in Finder" = "הצגה ב־Finder";
+"No screenshots yet" = "אין עדיין צילומי מסך";
+"Pinned" = "מוצמדים";
+"Double-click to edit, drag to share" = "לחיצה כפולה לעריכה, גרירה לשיתוף";
+"Unpin" = "ביטול הצמדה";
+"Pin" = "הצמדה";
+"Pin (never delete automatically)" = "הצמדה (ללא מחיקה אוטומטית)";
+"Open in Editor" = "פתיחה בעורך";
+"Delete" = "מחיקה";

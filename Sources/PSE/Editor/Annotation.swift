@@ -79,7 +79,7 @@ enum Palette {
 
 /// One mark on the screenshot. All geometry is in image pixels (top-left origin).
 struct Annotation: Identifiable {
-    enum Kind {
+    enum Kind: Codable {
         case arrow(CGPoint, CGPoint)
         case rect(CGRect)
         case highlight(CGRect)
@@ -88,7 +88,7 @@ struct Annotation: Identifiable {
         case text(CGPoint, String)
     }
 
-    let id = UUID()
+    var id = UUID()
     var kind: Kind
     var color: NSColor
     /// Image pixels per design point: capture scale × stroke size.
@@ -149,5 +149,30 @@ struct Annotation: Identifiable {
         guard len2 > 0 else { return p.distance(to: a) }
         let t = max(0, min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2))
         return p.distance(to: CGPoint(x: a.x + t * dx, y: a.y + t * dy))
+    }
+}
+
+// Stored in the history as JSON; the colour is kept as sRGB components.
+extension Annotation: Codable {
+    private enum CodingKeys: String, CodingKey { case id, kind, color, unit }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        kind = try c.decode(Kind.self, forKey: .kind)
+        unit = try c.decode(CGFloat.self, forKey: .unit)
+        let rgba = try c.decode([CGFloat].self, forKey: .color)
+        color = rgba.count == 4
+            ? NSColor(srgbRed: rgba[0], green: rgba[1], blue: rgba[2], alpha: rgba[3])
+            : Palette.colors[0]
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(unit, forKey: .unit)
+        let rgb = color.usingColorSpace(.sRGB) ?? Palette.colors[0]
+        try c.encode([rgb.redComponent, rgb.greenComponent, rgb.blueComponent, rgb.alphaComponent], forKey: .color)
     }
 }

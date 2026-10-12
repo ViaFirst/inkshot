@@ -41,3 +41,20 @@
 "Save" = "Save";
 "Save as PNG (⌘S)" = "Save as PNG (⌘S)";
 "Copy and Close (↩ or ⌘C)" = "Copy and Close (↩ or ⌘C)";
+
+/* History */
+"Recent" = "Recent";
+"Show History…" = "Show History…";
+"Screenshot History" = "Screenshot History";
+"Keep last:" = "Keep last:";
+"%d screenshots" = "%d screenshots";
+"Pinned screenshots are never deleted automatically." = "Pinned screenshots are never deleted automatically.";
+"Show in Finder" = "Show in Finder";
+"No screenshots yet" = "No screenshots yet";
+"Pinned" = "Pinned";
+"Double-click to edit, drag to share" = "Double-click to edit, drag to share";
+"Unpin" = "Unpin";
+"Pin" = "Pin";
+"Pin (never delete automatically)" = "Pin (never delete automatically)";
+"Open in Editor" = "Open in Editor";
+"Delete" = "Delete";

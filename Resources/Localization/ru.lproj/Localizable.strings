@@ -41,3 +41,20 @@
 "Save" = "Сохранить";
 "Save as PNG (⌘S)" = "Сохранить в PNG (⌘S)";
 "Copy and Close (↩ or ⌘C)" = "Скопировать и закрыть (↩ или ⌘C)";
+
+/* History */
+"Recent" = "Недавние";
+"Show History…" = "Показать историю…";
+"Screenshot History" = "История скриншотов";
+"Keep last:" = "Хранить последние:";
+"%d screenshots" = "%d скриншотов";
+"Pinned screenshots are never deleted automatically." = "Закреплённые скриншоты никогда не удаляются автоматически.";
+"Show in Finder" = "Показать в Finder";
+"No screenshots yet" = "Скриншотов пока нет";
+"Pinned" = "Закреплённые";
+"Double-click to edit, drag to share" = "Двойной клик — редактировать, перетащить — поделиться";
+"Unpin" = "Открепить";
+"Pin" = "Закрепить";
+"Pin (never delete automatically)" = "Закрепить (не удалять автоматически)";
+"Open in Editor" = "Открыть в редакторе";
+"Delete" = "Удалить";
