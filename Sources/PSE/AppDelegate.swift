@@ -1,0 +1,115 @@
+import AppKit
+import ServiceManagement
+
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    static var shared: AppDelegate { NSApp.delegate as! AppDelegate }
+
+    private var statusItem: NSStatusItem!
+    private let hotKey = HotKeyMonitor()
+    private let capture = CaptureController()
+    private var editors: [EditorWindowController] = []
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.mainMenu = MainMenu.make()
+
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem.button?.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "PSE")
+        let menu = NSMenu()
+        menu.delegate = self
+        statusItem.menu = menu
+
+        capture.onCaptured = { [weak self] image, scale, screen in
+            self?.openEditor(image: image, scale: scale, screen: screen)
+        }
+        capture.onCancel = { [weak self] in self?.restoreFocusIfIdle() }
+
+        hotKey.onTrigger = { [weak self] in self?.capture.start() }
+        hotKey.start()
+    }
+
+    // MARK: Status menu
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        menu.addItem(item("Снять скриншот", "rectangle.dashed", #selector(menuCapture)))
+        menu.addItem(item("Весь экран", "display", #selector(menuCaptureFull)))
+        menu.addItem(.separator())
+
+        let hint = NSMenuItem(title: "Хоткей: правый ⌘ + ⇧ + P", action: nil, keyEquivalent: "")
+        hint.isEnabled = false
+        menu.addItem(hint)
+        if !hotKey.isActive {
+            menu.addItem(item("⚠︎ Дать доступ «Универсальный доступ»…", nil, #selector(openAccessibility)))
+        }
+        if !CGPreflightScreenCaptureAccess() {
+            menu.addItem(item("⚠︎ Дать доступ «Запись экрана»…", nil, #selector(openScreenRecording)))
+        }
+
+        menu.addItem(.separator())
+        let login = item("Запускать при входе", nil, #selector(toggleLogin))
+        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        menu.addItem(login)
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Выйти из PSE", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    private func item(_ title: String, _ symbol: String?, _ action: Selector) -> NSMenuItem {
+        let i = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        i.target = self
+        if let symbol { i.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
+        return i
+    }
+
+    // Wait for the status menu to disappear before freezing the screen.
+    @objc private func menuCapture() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self.capture.start() }
+    }
+
+    @objc private func menuCaptureFull() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self.capture.start(fullScreen: true) }
+    }
+
+    @objc private func openAccessibility() {
+        hotKey.requestAccess()
+        Permissions.openSettings(.accessibility)
+    }
+
+    @objc private func openScreenRecording() {
+        CGRequestScreenCaptureAccess()
+        Permissions.openSettings(.screenRecording)
+    }
+
+    @objc private func toggleLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled { try service.unregister() } else { try service.register() }
+        } catch {
+            NSAlert(error: error).runModal()
+        }
+    }
+
+    // MARK: Editors
+
+    private func openEditor(image: CGImage, scale: CGFloat, screen: NSScreen?) {
+        ImageExport.copyToPasteboard(image, scale: scale)
+        let editor = EditorWindowController(image: image, scale: scale, screen: screen)
+        editor.onClose = { [weak self, weak editor] in
+            guard let self, let editor else { return }
+            self.editors.removeAll { $0 === editor }
+            self.restoreFocusIfIdle()
+        }
+        editors.append(editor)
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        editor.showWindow(nil)
+        editor.window?.makeKeyAndOrderFront(nil)
+    }
+
+    // Back to a menu-bar-only app and hand focus to whatever was in front before.
+    private func restoreFocusIfIdle() {
+        guard editors.isEmpty else { return }
+        NSApp.setActivationPolicy(.accessory)
+        NSApp.hide(nil)
+    }
+}
