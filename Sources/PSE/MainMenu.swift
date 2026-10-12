@@ -7,26 +7,26 @@ enum MainMenu {
         let main = NSMenu()
 
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Скрыть PSE", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: L("Hide PSE"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Выйти из PSE", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: L("Quit PSE"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         add(appMenu, title: "PSE", to: main)
 
-        let file = NSMenu(title: "Файл")
-        file.addItem(withTitle: "Сохранить…", action: #selector(CanvasView.saveDocument(_:)), keyEquivalent: "s")
-        file.addItem(withTitle: "Закрыть", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        add(file, title: "Файл", to: main)
+        let file = NSMenu(title: L("File"))
+        file.addItem(withTitle: L("Save…"), action: #selector(CanvasView.saveDocument(_:)), keyEquivalent: "s")
+        file.addItem(withTitle: L("Close"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        add(file, title: L("File"), to: main)
 
-        let edit = NSMenu(title: "Правка")
-        edit.addItem(withTitle: "Отменить", action: #selector(CanvasView.undo(_:)), keyEquivalent: "z")
-        let redo = edit.addItem(withTitle: "Повторить", action: #selector(CanvasView.redo(_:)), keyEquivalent: "z")
+        let edit = NSMenu(title: L("Edit"))
+        edit.addItem(withTitle: L("Undo"), action: #selector(CanvasView.undo(_:)), keyEquivalent: "z")
+        let redo = edit.addItem(withTitle: L("Redo"), action: #selector(CanvasView.redo(_:)), keyEquivalent: "z")
         redo.keyEquivalentModifierMask = [.command, .shift]
         edit.addItem(.separator())
-        edit.addItem(withTitle: "Вырезать", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        edit.addItem(withTitle: "Копировать", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        edit.addItem(withTitle: "Вставить", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        edit.addItem(withTitle: "Выбрать всё", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-        add(edit, title: "Правка", to: main)
+        edit.addItem(withTitle: L("Cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: L("Copy"), action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: L("Paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: L("Select All"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        add(edit, title: L("Edit"), to: main)
 
         return main
     }

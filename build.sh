@@ -7,6 +7,7 @@ cd "$(dirname "$0")"
 BUNDLE_ID="com.viafirst.pse"
 APP="build/PSE.app"
 
+./scripts/check-strings.sh
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/PSE"
 
@@ -14,6 +15,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/PSE"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp -R Resources/Localization/*.lproj "$APP/Contents/Resources/"
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
 # Use a real signing identity if one exists (set PSE_SIGN_IDENTITY), otherwise ad-hoc.

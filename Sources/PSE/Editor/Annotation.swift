@@ -20,14 +20,14 @@ enum Tool: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .select: "Выбор / перемещение"
-        case .arrow: "Стрелка"
-        case .rect: "Рамка"
-        case .text: "Текст"
-        case .number: "Номер шага"
-        case .highlight: "Маркер"
-        case .pixelate: "Размытие"
-        case .crop: "Обрезка"
+        case .select: L("Select & Move")
+        case .arrow: L("Arrow")
+        case .rect: L("Rectangle")
+        case .text: L("Text")
+        case .number: L("Step Number")
+        case .highlight: L("Highlighter")
+        case .pixelate: L("Blur")
+        case .crop: L("Crop")
         }
     }
 

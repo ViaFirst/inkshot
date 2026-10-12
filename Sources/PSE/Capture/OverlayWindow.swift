@@ -220,10 +220,10 @@ final class OverlayToolbar: NSVisualEffectView {
         layer?.cornerRadius = 12
         layer?.masksToBounds = true
 
-        let area = button("rectangle.dashed", tip: "Область (A)", #selector(pickArea))
-        let window = button("macwindow", tip: "Окно (W)", #selector(pickWindow))
-        let full = button("display", tip: "Весь экран (F)", #selector(pickFull))
-        let close = button("xmark", tip: "Отмена (Esc)", #selector(cancel))
+        let area = button("rectangle.dashed", tip: L("Area (A)"), #selector(pickArea))
+        let window = button("macwindow", tip: L("Window (W)"), #selector(pickWindow))
+        let full = button("display", tip: L("Full Screen (F)"), #selector(pickFull))
+        let close = button("xmark", tip: L("Cancel (Esc)"), #selector(cancel))
         modeButtons = [(.area, area), (.window, window)]
 
         let divider = NSBox()

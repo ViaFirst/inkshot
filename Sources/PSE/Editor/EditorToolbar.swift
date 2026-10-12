@@ -58,22 +58,22 @@ struct EditorToolbar: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(ChipStyle(selected: model.size == s))
-                    .help("Толщина")
+                    .help(L("Stroke Size"))
                 }
             }
 
             Spacer(minLength: 8)
 
             Button { model.undo(); onInteract() } label: { Image(systemName: "arrow.uturn.backward") }
-                .buttonStyle(.borderless).disabled(!model.canUndo).help("Отменить (⌘Z)")
+                .buttonStyle(.borderless).disabled(!model.canUndo).help(L("Undo (⌘Z)"))
             Button { model.redo(); onInteract() } label: { Image(systemName: "arrow.uturn.forward") }
-                .buttonStyle(.borderless).disabled(!model.canRedo).help("Повторить (⇧⌘Z)")
+                .buttonStyle(.borderless).disabled(!model.canRedo).help(L("Redo (⇧⌘Z)"))
 
-            Button("Сохранить", action: onSave)
-                .help("Сохранить PNG (⌘S)")
-            Button("Копировать", action: onCopy)
+            Button(L("Save"), action: onSave)
+                .help(L("Save as PNG (⌘S)"))
+            Button(L("Copy"), action: onCopy)
                 .buttonStyle(.borderedProminent)
-                .help("Скопировать и закрыть (↩ или ⌘C)")
+                .help(L("Copy and Close (↩ or ⌘C)"))
         }
         .controlSize(.regular)
         .padding(.horizontal, 12)

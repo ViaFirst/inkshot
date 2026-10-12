@@ -1,6 +1,12 @@
 import AppKit
 import UniformTypeIdentifiers
 
+/// Localized UI string. English text is the key, so a missing translation falls back to English.
+/// Translations: Resources/Localization/<lang>.lproj/Localizable.strings
+func L(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 enum Permissions {
     enum Pane: String {
         case accessibility = "Privacy_Accessibility"
@@ -19,10 +25,10 @@ enum Permissions {
         if CGPreflightScreenCaptureAccess() { return true }
         CGRequestScreenCaptureAccess()
         let alert = NSAlert()
-        alert.messageText = "Нужен доступ к записи экрана"
-        alert.informativeText = "Системные настройки → Конфиденциальность и безопасность → Запись экрана: включи PSE. После этого перезапусти PSE."
-        alert.addButton(withTitle: "Открыть настройки")
-        alert.addButton(withTitle: "Отмена")
+        alert.messageText = L("Screen Recording access is required")
+        alert.informativeText = L("Open System Settings → Privacy & Security → Screen Recording, turn on PSE, then restart PSE.")
+        alert.addButton(withTitle: L("Open Settings"))
+        alert.addButton(withTitle: L("Cancel"))
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn { openSettings(.screenRecording) }
         return false
@@ -50,9 +56,11 @@ enum ImageExport {
     }
 
     static func defaultFileName(date: Date = Date()) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
-        return "Screenshot \(f.string(from: date)).png"
+        let day = DateFormatter()
+        day.dateFormat = "yyyy-MM-dd"
+        let time = DateFormatter()
+        time.dateFormat = "HH.mm.ss"
+        return String(format: L("Screenshot %@ at %@.png"), day.string(from: date), time.string(from: date))
     }
 }
 

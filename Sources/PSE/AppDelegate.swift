@@ -32,26 +32,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        menu.addItem(item("Снять скриншот", "rectangle.dashed", #selector(menuCapture)))
-        menu.addItem(item("Весь экран", "display", #selector(menuCaptureFull)))
+        menu.addItem(item(L("Take Screenshot"), "rectangle.dashed", #selector(menuCapture)))
+        menu.addItem(item(L("Full Screen"), "display", #selector(menuCaptureFull)))
         menu.addItem(.separator())
 
-        let hint = NSMenuItem(title: "Хоткей: правый ⌘ + ⇧ + P", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: L("Hotkey: Right ⌘ + ⇧ + P"), action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
         if !hotKey.isActive {
-            menu.addItem(item("⚠︎ Дать доступ «Универсальный доступ»…", nil, #selector(openAccessibility)))
+            menu.addItem(item(L("⚠︎ Grant Accessibility Access…"), nil, #selector(openAccessibility)))
         }
         if !CGPreflightScreenCaptureAccess() {
-            menu.addItem(item("⚠︎ Дать доступ «Запись экрана»…", nil, #selector(openScreenRecording)))
+            menu.addItem(item(L("⚠︎ Grant Screen Recording Access…"), nil, #selector(openScreenRecording)))
         }
 
         menu.addItem(.separator())
-        let login = item("Запускать при входе", nil, #selector(toggleLogin))
+        let login = item(L("Launch at Login"), nil, #selector(toggleLogin))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Выйти из PSE", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: L("Quit PSE"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
     private func item(_ title: String, _ symbol: String?, _ action: Selector) -> NSMenuItem {
