@@ -60,6 +60,17 @@ final class OverlayView: NSView {
         }
         addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeAlways, .inVisibleRect],
                                        owner: self, userInfo: nil))
+
+        // Start with the pointer's current position, so the crosshair and loupe show right away.
+        let global = NSEvent.mouseLocation
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        let local = CGPoint(x: global.x - shot.frame.minX, y: primaryHeight - global.y - shot.frame.minY)
+        if bounds.contains(local) { mouse = local }
+    }
+
+    /// Self-test hook: put the pointer somewhere without a real mouse event.
+    func debugMovePointer(to p: CGPoint) {
+        mouse = p
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -112,6 +123,97 @@ final class OverlayView: NSView {
         } else if mode != .window, mode != .webPage, dragStart == nil, let m = mouse {
             drawCrosshair(at: m)
         }
+
+        if mode == .area || mode == .scroll, let m = mouse, toolbar.map({ $0.isHidden || !$0.frame.contains(m) }) ?? true {
+            drawLoupe(at: m)
+        }
+    }
+
+    // MARK: Loupe
+
+    private static let loupePixels = 15        // odd: the centre pixel is the one under the pointer
+    private static let loupeCell: CGFloat = 8  // points per magnified pixel
+
+    /// Magnified pixels around the pointer, with a grid, the centre pixel marked, and its
+    /// position and colour underneath. Sits below-right of the pointer, flipping at screen edges.
+    private func drawLoupe(at p: CGPoint) {
+        let n = Self.loupePixels, cell = Self.loupeCell
+        let side = CGFloat(n) * cell
+        let s = shot.scale
+        let cx = Int(p.x * s), cy = Int(p.y * s)
+
+        var box = CGRect(x: p.x + 24, y: p.y + 24, width: side, height: side)
+        if box.maxX > bounds.maxX - 8 { box.origin.x = p.x - 24 - side }
+        if box.maxY + 30 > bounds.maxY - 8 { box.origin.y = p.y - 24 - side - 30 }
+
+        let shape = NSBezierPath(roundedRect: box, xRadius: 10, yRadius: 10)
+        NSGraphicsContext.saveGraphicsState()
+        shape.addClip()
+        NSColor.black.setFill()
+        box.fill()
+
+        let wanted = CGRect(x: cx - n / 2, y: cy - n / 2, width: n, height: n)
+        let available = wanted.intersection(CGRect(x: 0, y: 0, width: shot.image.width, height: shot.image.height))
+        if !available.isNull, let pixels = shot.image.cropping(to: available) {
+            let dest = CGRect(x: box.minX + (available.minX - wanted.minX) * cell,
+                              y: box.minY + (available.minY - wanted.minY) * cell,
+                              width: available.width * cell, height: available.height * cell)
+            NSGraphicsContext.current?.imageInterpolation = .none
+            NSImage(cgImage: pixels, size: available.size)
+                .draw(in: dest, from: .zero, operation: .copy, fraction: 1, respectFlipped: true, hints: nil)
+        }
+
+        let grid = NSBezierPath()
+        for i in 1..<n {
+            let o = CGFloat(i) * cell
+            grid.move(to: CGPoint(x: box.minX + o, y: box.minY))
+            grid.line(to: CGPoint(x: box.minX + o, y: box.maxY))
+            grid.move(to: CGPoint(x: box.minX, y: box.minY + o))
+            grid.line(to: CGPoint(x: box.maxX, y: box.minY + o))
+        }
+        grid.lineWidth = 0.5
+        NSColor.gray.withAlphaComponent(0.3).setStroke() // visible on both light and dark content
+        grid.stroke()
+
+        let centre = CGRect(x: box.minX + CGFloat(n / 2) * cell, y: box.minY + CGFloat(n / 2) * cell,
+                            width: cell, height: cell)
+        NSColor.black.setStroke()
+        NSBezierPath(rect: centre.insetBy(dx: -1, dy: -1)).stroke()
+        NSColor.white.setStroke()
+        NSBezierPath(rect: centre).stroke()
+        NSGraphicsContext.restoreGraphicsState()
+
+        NSColor.white.withAlphaComponent(0.9).setStroke()
+        shape.lineWidth = 2
+        shape.stroke()
+
+        // Position (points) and colour of the centre pixel.
+        let hex = pixelHex(x: cx, y: cy) ?? "—"
+        let text = "\(Int(p.x)), \(Int(p.y))   \(hex)" as NSString
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.white,
+        ]
+        let size = text.size(withAttributes: attrs)
+        let label = CGRect(x: box.midX - (size.width + 12) / 2, y: box.maxY + 6, width: size.width + 12, height: size.height + 6)
+        NSColor.black.withAlphaComponent(0.8).setFill()
+        NSBezierPath(roundedRect: label, xRadius: 5, yRadius: 5).fill()
+        text.draw(at: CGPoint(x: label.minX + 6, y: label.minY + 3), withAttributes: attrs)
+    }
+
+    /// sRGB hex of one pixel of the frozen shot.
+    private func pixelHex(x: Int, y: Int) -> String? {
+        guard x >= 0, y >= 0, x < shot.image.width, y < shot.image.height,
+              let one = shot.image.cropping(to: CGRect(x: x, y: y, width: 1, height: 1)) else { return nil }
+        var rgba = [UInt8](repeating: 0, count: 4)
+        let ok = rgba.withUnsafeMutableBytes { raw -> Bool in
+            guard let ctx = CGContext(data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            ctx.draw(one, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+            return true
+        }
+        return ok ? String(format: "#%02X%02X%02X", rgba[0], rgba[1], rgba[2]) : nil
     }
 
     private func reveal(_ r: CGRect) {

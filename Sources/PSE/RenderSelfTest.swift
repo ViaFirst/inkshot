@@ -20,6 +20,7 @@ enum RenderSelfTest {
                     mobile: args.contains("mobile"))
             return true
         }
+        if let i = args.firstIndex(of: "--loupe-test"), i + 1 < args.count { loupeTest(out: args[i + 1]) }
         if args.contains("--stitch-test") { stitchTest() }
         if let i = args.firstIndex(of: "--replay"), i + 1 < args.count { replay(URL(fileURLWithPath: args[i + 1])) }
         if let i = args.firstIndex(of: "--history-test"), i + 1 < args.count {
@@ -252,5 +253,35 @@ enum RenderSelfTest {
             }
             exit(0)
         }
+    }
+
+    /// `PSE --loupe-test <out.png>`: draws the overlay with the loupe over a synthetic screen.
+    private static func loupeTest(out: String) {
+        let w = 1600, h = 1000   // 800×500 pt at 2x
+        let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        ctx.setFillColor(NSColor.white.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        ("Pixel-perfect PSE" as NSString).draw(at: CGPoint(x: 200, y: 500), withAttributes: [
+            .font: NSFont.systemFont(ofSize: 90, weight: .bold), .foregroundColor: NSColor.systemPurple])
+        NSGraphicsContext.restoreGraphicsState()
+        ctx.setFillColor(NSColor.systemOrange.cgColor)
+        ctx.fill(CGRect(x: 1400, y: 60, width: 200, height: 200))
+
+        let shot = DisplayShot(displayID: 0, image: ctx.makeImage()!, frame: CGRect(x: 0, y: 0, width: 800, height: 500))
+        let controller = CaptureController()
+        for (name, point) in [("middle", CGPoint(x: 160, y: 228)), ("edge", CGPoint(x: 760, y: 440))] {
+            let view = OverlayView(shot: shot, windows: [], controller: controller, showToolbar: false)
+            view.debugMovePointer(to: point)
+            let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds)!
+            view.cacheDisplay(in: view.bounds, to: rep)
+            let url = URL(fileURLWithPath: out.replacingOccurrences(of: ".png", with: "-\(name).png"))
+            try? rep.representation(using: .png, properties: [:])?.write(to: url)
+            print("wrote", url.path)
+        }
+        exit(0)
     }
 }
