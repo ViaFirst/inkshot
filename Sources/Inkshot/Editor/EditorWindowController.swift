@@ -42,7 +42,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false
         )
-        window.title = "PSE — \(Int(model.crop.width)) × \(Int(model.crop.height))"
+        window.title = "Inkshot — \(Int(model.crop.width)) × \(Int(model.crop.height))"
         window.minSize = CGSize(width: 760, height: 320)
         window.isReleasedWhenClosed = false
 

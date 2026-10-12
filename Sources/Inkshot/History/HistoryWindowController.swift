@@ -14,8 +14,8 @@ final class HistoryWindowController: NSWindowController, NSWindowDelegate {
         window.title = L("Screenshot History")
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: HistoryView(store: store, hover: HoverTracker(), onOpen: onOpen))
-        window.setFrameAutosaveName("PSEHistory")
-        if !window.setFrameUsingName("PSEHistory") { window.center() }
+        window.setFrameAutosaveName("InkshotHistory")
+        if !window.setFrameUsingName("InkshotHistory") { window.center() }
         super.init(window: window)
         window.delegate = self
     }

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/icon.png" width="128" height="128" alt="PSE icon">
+  <img src="docs/images/icon.png" width="128" height="128" alt="Inkshot icon">
 </p>
 
-<h1 align="center">PSE</h1>
+<h1 align="center">Inkshot</h1>
 
 <p align="center">
   A macOS menu-bar screenshot tool: capture, mark up, copy.<br>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/editor.png" alt="The PSE editor with an arrow, a frame, step numbers, a highlighter and text">
+  <img src="docs/images/editor.png" alt="The Inkshot editor with an arrow, a frame, step numbers, a highlighter and text">
 </p>
 
 ## Capture
@@ -32,9 +32,9 @@ keyboard layout.
 
 ## Whole pages
 
-- **Scrolling capture** — click a window: PSE scrolls it by itself and stitches the frames; side bars
+- **Scrolling capture** — click a window: Inkshot scrolls it by itself and stitches the frames; side bars
   that don't scroll are cropped away.
-- **Full web page** — click a browser window: PSE renders the tab's address in a hidden WebKit view at
+- **Full web page** — click a browser window: Inkshot renders the tab's address in a hidden WebKit view at
   window, desktop (1440) or mobile (390) width and captures it in one piece — fixed headers once,
   cookie banners hidden.
 
@@ -63,13 +63,13 @@ the browser tab's address).
 ## Tests
 
 ```bash
-.build/release/PSE --self-test                 # stitching, history, pasteboard, highlighter brightness
-.build/release/PSE --render-test out.png       # editor rendering; also --loupe-test, --highlight-test
-.build/release/PSE --web-test <url> out.png [width] [mobile]
-.build/release/PSE --readme-shots <desktop.png> <mobile.png> docs/images   # regenerates these screenshots
+.build/release/Inkshot --self-test                 # stitching, history, pasteboard, highlighter brightness
+.build/release/Inkshot --render-test out.png       # editor rendering; also --loupe-test, --highlight-test
+.build/release/Inkshot --web-test <url> out.png [width] [mobile]
+.build/release/Inkshot --readme-shots <desktop.png> <mobile.png> docs/images   # regenerates these screenshots
 ```
 
-Debug: `defaults write com.viafirst.pse debugScrollFrames -bool YES` saves scrolling-capture frames to
-`~/Library/Application Support/PSE/Debug/`; replay them with `--replay <dir>`.
+Debug: `defaults write com.viafirst.inkshot debugScrollFrames -bool YES` saves scrolling-capture frames to
+`~/Library/Application Support/Inkshot/Debug/`; replay them with `--replay <dir>`.
 
 License: MIT.

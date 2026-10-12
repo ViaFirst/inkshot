@@ -7,10 +7,10 @@ enum MainMenu {
         let main = NSMenu()
 
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: L("Hide PSE"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: L("Hide Inkshot"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: L("Quit PSE"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        add(appMenu, title: "PSE", to: main)
+        appMenu.addItem(withTitle: L("Quit Inkshot"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        add(appMenu, title: "Inkshot", to: main)
 
         let file = NSMenu(title: L("File"))
         file.addItem(withTitle: L("Save…"), action: #selector(CanvasView.saveDocument(_:)), keyEquivalent: "s")

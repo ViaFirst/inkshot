@@ -5,13 +5,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>PSE</string>
+	<string>Inkshot</string>
 	<key>CFBundleExecutable</key>
-	<string>PSE</string>
+	<string>Inkshot</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.viafirst.pse</string>
+	<string>com.viafirst.inkshot</string>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
@@ -19,19 +19,19 @@
 		<string>he</string>
 	</array>
 	<key>CFBundleName</key>
-	<string>PSE</string>
+	<string>Inkshot</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.6.2</string>
+	<string>0.7.0</string>
 	<key>CFBundleVersion</key>
-	<string>8</string>
+	<string>9</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>PSE reads the address of the open browser tab to capture the whole web page.</string>
+	<string>Inkshot reads the address of the open browser tab to capture the whole web page.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

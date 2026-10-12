@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.mainMenu = MainMenu.make()
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "PSE")
+        statusItem.button?.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "Inkshot")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: L("Quit PSE"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: L("Quit Inkshot"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
     private func item(_ title: String, _ symbol: String?, _ action: Selector) -> NSMenuItem {

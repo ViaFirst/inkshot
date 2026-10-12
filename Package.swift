@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "PSE",
+    name: "Inkshot",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "PSE", path: "Sources/PSE")
+        .executableTarget(name: "Inkshot", path: "Sources/Inkshot")
     ]
 )

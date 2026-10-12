@@ -1,38 +1,38 @@
 #!/bin/bash
-# Build PSE.app.   ./build.sh          -> build/PSE.app
+# Build Inkshot.app.   ./build.sh          -> build/Inkshot.app
 #                  ./build.sh install  -> also copy to ~/Applications and launch
 set -euo pipefail
 cd "$(dirname "$0")"
 
-BUNDLE_ID="com.viafirst.pse"
-APP="build/PSE.app"
+BUNDLE_ID="com.viafirst.inkshot"
+APP="build/Inkshot.app"
 
 ./scripts/check-strings.sh
 swift build -c release
-BIN="$(swift build -c release --show-bin-path)/PSE"
+BIN="$(swift build -c release --show-bin-path)/Inkshot"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/PSE"
+cp "$BIN" "$APP/Contents/MacOS/Inkshot"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp -R Resources/Localization/*.lproj "$APP/Contents/Resources/"
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
-# Use a real signing identity if one exists (set PSE_SIGN_IDENTITY), otherwise ad-hoc.
+# Use a real signing identity if one exists (set INKSHOT_SIGN_IDENTITY), otherwise ad-hoc.
 # The explicit designated requirement (bundle id only) keeps the Screen Recording /
 # Accessibility grants valid across rebuilds instead of tying them to one binary hash.
-IDENTITY="${PSE_SIGN_IDENTITY:--}"
+IDENTITY="${INKSHOT_SIGN_IDENTITY:--}"
 codesign --force --sign "$IDENTITY" --identifier "$BUNDLE_ID" \
   -r="designated => identifier \"$BUNDLE_ID\"" "$APP"
 
 echo "Built $APP"
 
 if [ "${1:-}" = "install" ]; then
-  pkill -x PSE 2>/dev/null || true
-  for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x PSE >/dev/null || break; sleep 0.3; done
+  pkill -x Inkshot 2>/dev/null || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x Inkshot >/dev/null || break; sleep 0.3; done
   mkdir -p "$HOME/Applications"
-  rm -rf "$HOME/Applications/PSE.app"
+  rm -rf "$HOME/Applications/Inkshot.app"
   cp -R "$APP" "$HOME/Applications/"
-  open "$HOME/Applications/PSE.app"
-  echo "Installed to ~/Applications/PSE.app"
+  open "$HOME/Applications/Inkshot.app"
+  echo "Installed to ~/Applications/Inkshot.app"
 fi

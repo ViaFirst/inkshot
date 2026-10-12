@@ -6,6 +6,7 @@ MainActor.assumeIsolated {
         app.setActivationPolicy(.accessory) // same as the real app: allowed to show windows
         app.run()
     }
+    LegacyMigration.run() // before AppDelegate: it opens the history store
     let delegate = AppDelegate()
     app.delegate = delegate
     app.setActivationPolicy(.accessory)

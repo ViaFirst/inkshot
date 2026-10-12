@@ -1,6 +1,6 @@
-// PSE app icon, drawn by hand on the macOS grid (824 px body on 1024).
-//   swift Resources/Icon/pse-icon.swift <out.png>
-// A tilted screenshot card inside viewfinder corners, marked up the PSE way:
+// Inkshot app icon, drawn by hand on the macOS grid (824 px body on 1024).
+//   swift Resources/Icon/inkshot-icon.swift <out.png>
+// A tilted screenshot card inside viewfinder corners, marked up the Inkshot way:
 // highlighter over a line and an annotation arrow pointing at it.
 import AppKit
 
@@ -147,7 +147,7 @@ rgb(0xFFFFFF).setStroke()
 corners.stroke()
 NSGraphicsContext.restoreGraphicsState()
 
-// MARK: Annotation arrow (PSE's tapered arrow) pointing at the highlight
+// MARK: Annotation arrow (Inkshot's tapered arrow) pointing at the highlight
 
 func arrow(from a: CGPoint, to b: CGPoint, width w: CGFloat) -> NSBezierPath {
     let len = hypot(b.x - a.x, b.y - a.y)

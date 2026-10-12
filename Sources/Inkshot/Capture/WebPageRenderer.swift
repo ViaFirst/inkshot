@@ -180,7 +180,7 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             let now = try? await webView.evaluateJavaScript(Self.layoutFingerprintScript) as? String
             if layout == nil { layout = now }
             if strict, now != layout {
-                if ProcessInfo.processInfo.environment["PSE_DEBUG"] != nil {
+                if ProcessInfo.processInfo.environment["INKSHOT_DEBUG"] != nil {
                     let a = (layout ?? "").split(separator: ":").first ?? "", b = (now ?? "").split(separator: ":").first ?? ""
                     FileHandle.standardError.write("layout moved at y=\(Int(y)): height \(a) -> \(b)\n".data(using: .utf8)!)
                     let old = (layout ?? "").split(separator: ":").last?.split(separator: ",") ?? []
@@ -188,7 +188,7 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
                     let moved = zip(old, new).enumerated().filter { $0.element.0 != $0.element.1 }.prefix(6)
                     for (i, pair) in moved {
                         let desc = (try? await webView.evaluateJavaScript(
-                            "(e => e.tagName + '.' + e.className + ' ' + (e.textContent||'').trim().slice(0,40))(window.__pseEls[\(i)])") as? String) ?? "?"
+                            "(e => e.tagName + '.' + e.className + ' ' + (e.textContent||'').trim().slice(0,40))(window.__inkshotEls[\(i)])") as? String) ?? "?"
                         FileHandle.standardError.write("  #\(i) \(pair.0) -> \(pair.1): \(desc)\n".data(using: .utf8)!)
                     }
                 }
@@ -207,7 +207,7 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             let shot = try await webView.takeSnapshot(configuration: config)
             let after = try await scrollY()
             if strict, after != actual {
-                if ProcessInfo.processInfo.environment["PSE_DEBUG"] != nil {
+                if ProcessInfo.processInfo.environment["INKSHOT_DEBUG"] != nil {
                     FileHandle.standardError.write("scroll moved during snapshot at y=\(Int(y)): \(actual) -> \(after)\n".data(using: .utf8)!)
                 }
                 return nil
@@ -234,9 +234,9 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
             // Sticky/fixed elements legitimately move while scrolling: leave them out.
             const pinned = e => { for (; e && e !== document.body; e = e.parentElement) {
                 const p = getComputedStyle(e).position; if (p === 'fixed' || p === 'sticky') return true; } return false; };
-            if (!window.__pseEls) window.__pseEls = Array.from(document.querySelectorAll('img, h1, h2, h3, article, section'))
+            if (!window.__inkshotEls) window.__inkshotEls = Array.from(document.querySelectorAll('img, h1, h2, h3, article, section'))
                 .filter(e => !pinned(e)).slice(0, 120);
-            const els = window.__pseEls;
+            const els = window.__inkshotEls;
             // Layout position (offsetTop chain): ignores transforms, so reveal animations that slide
             // content in don't count as a layout change. Invisible elements are skipped.
             const top = e => { let y = 0; for (; e; e = e.offsetParent) y += e.offsetTop; return y; };
@@ -248,8 +248,8 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
     private static let hideFixedScript = """
         for (const el of document.querySelectorAll('body *')) {
             const p = getComputedStyle(el).position;
-            if ((p === 'fixed' || p === 'sticky') && !el.hasAttribute('data-pse-hidden')) {
-                el.setAttribute('data-pse-hidden', el.style.visibility || '');
+            if ((p === 'fixed' || p === 'sticky') && !el.hasAttribute('data-inkshot-hidden')) {
+                el.setAttribute('data-inkshot-hidden', el.style.visibility || '');
                 el.style.setProperty('visibility', 'hidden', 'important');
             }
         }
@@ -269,9 +269,9 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
 
     /// Undoes hideFixedScript before a new pass, so the header is in the first viewport again.
     private static let showFixedScript = """
-        for (const el of document.querySelectorAll('[data-pse-hidden]')) {
-            el.style.visibility = el.getAttribute('data-pse-hidden');
-            el.removeAttribute('data-pse-hidden');
+        for (const el of document.querySelectorAll('[data-inkshot-hidden]')) {
+            el.style.visibility = el.getAttribute('data-inkshot-hidden');
+            el.removeAttribute('data-inkshot-hidden');
         }
         true
         """

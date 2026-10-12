@@ -1,4 +1,4 @@
-/* PSE: ru. Key = English text. */
+/* Inkshot: ru. Key = English text. */
 
 "Take Screenshot" = "Снять скриншот";
 "Full Screen" = "Весь экран";
@@ -6,8 +6,8 @@
 "⚠︎ Grant Accessibility Access…" = "⚠︎ Дать доступ «Универсальный доступ»…";
 "⚠︎ Grant Screen Recording Access…" = "⚠︎ Дать доступ «Запись экрана»…";
 "Launch at Login" = "Запускать при входе";
-"Quit PSE" = "Выйти из PSE";
-"Hide PSE" = "Скрыть PSE";
+"Quit Inkshot" = "Выйти из Inkshot";
+"Hide Inkshot" = "Скрыть Inkshot";
 "File" = "Файл";
 "Save…" = "Сохранить…";
 "Close" = "Закрыть";
@@ -19,7 +19,7 @@
 "Paste" = "Вставить";
 "Select All" = "Выбрать всё";
 "Screen Recording access is required" = "Нужен доступ к записи экрана";
-"Open System Settings → Privacy & Security → Screen Recording, turn on PSE, then restart PSE." = "Системные настройки → Конфиденциальность и безопасность → Запись экрана: включи PSE, затем перезапусти PSE.";
+"Open System Settings → Privacy & Security → Screen Recording, turn on Inkshot, then restart Inkshot." = "Системные настройки → Конфиденциальность и безопасность → Запись экрана: включи Inkshot, затем перезапусти Inkshot.";
 "Open Settings" = "Открыть настройки";
 "Cancel" = "Отмена";
 "Screenshot %@ at %@.png" = "Снимок экрана %@ в %@.png";
@@ -77,7 +77,7 @@
 "Full page · %d pt wide" = "Вся страница · ширина %d pt";
 "Capturing %@…" = "Снимаю %@…";
 "Full-page capture failed" = "Не удалось снять страницу";
-"PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE." = "PSE не может прочитать адрес из «%@». Включи доступ: Системные настройки → Конфиденциальность и безопасность → Автоматизация → PSE.";
+"Inkshot isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → Inkshot." = "Inkshot не может прочитать адрес из «%@». Включи доступ: Системные настройки → Конфиденциальность и безопасность → Автоматизация → Inkshot.";
 "“%@” has no web page open in the front window." = "В переднем окне «%@» не открыта веб-страница.";
 "“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera." = "«%@» — неподдерживаемый браузер. Снимок всей страницы работает с Safari, Chrome, Arc, Edge, Brave, Vivaldi и Opera.";
 "The page came out empty." = "Страница получилась пустой.";

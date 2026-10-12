@@ -1,7 +1,7 @@
 import AppKit
 import ImageIO
 
-/// `PSE --render-test <out.png>`: renders sample annotations on a synthetic image (no permissions needed).
+/// `Inkshot --render-test <out.png>`: renders sample annotations on a synthetic image (no permissions needed).
 @MainActor
 enum SelfTest {
     /// Returns true when a test needs the run loop (it exits by itself when done).
@@ -30,7 +30,7 @@ enum SelfTest {
         if args.contains("--self-test") {
             // All logic tests; throwaway folders and pasteboards only, never the user's data.
             stitchTest()
-            let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pse-selftest-\(UUID().uuidString)")
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent("inkshot-selftest-\(UUID().uuidString)")
             historyTest(root: dir)
             try? FileManager.default.removeItem(at: dir)
             pasteboardTest()
@@ -64,7 +64,7 @@ enum SelfTest {
         model.add(Annotation(kind: .pixelate(CGRect(x: 800, y: 380, width: 300, height: 200)), color: c[0], unit: u))
         model.add(Annotation(kind: .number(CGPoint(x: 470, y: 120), 1), color: c[0], unit: u))
         model.add(Annotation(kind: .number(CGPoint(x: 820, y: 400), 2), color: c[2], unit: u))
-        model.add(Annotation(kind: .text(CGPoint(x: 460, y: 320), "Привет, PSE! ✓"), color: c[0], unit: u))
+        model.add(Annotation(kind: .text(CGPoint(x: 460, y: 320), "Привет, Inkshot! ✓"), color: c[0], unit: u))
         model.add(Annotation(kind: .text(CGPoint(x: 460, y: 420), "White text"), color: c[7], unit: u))
         model.commit { model.crop = CGRect(x: 50, y: 50, width: 1100, height: 620) }
         let data = ImageExport.pngData(model.render(), scale: 2)!
@@ -72,7 +72,7 @@ enum SelfTest {
         exit(0)
     }
 
-    /// `PSE --history-test <empty dir>`: limit/pin/prune/persistence checks on a throwaway folder.
+    /// `Inkshot --history-test <empty dir>`: limit/pin/prune/persistence checks on a throwaway folder.
     private static func historyTest(root: URL) {
         func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
         let ctx = CGContext(data: nil, width: 400, height: 300, bitsPerComponent: 8, bytesPerRow: 0,
@@ -115,7 +115,7 @@ enum SelfTest {
         UserDefaults.standard.removeObject(forKey: "historyLimit")
     }
 
-    /// `PSE --stitch-test`: scrolls a synthetic page with a sticky header/footer and a flickering
+    /// `Inkshot --stitch-test`: scrolls a synthetic page with a sticky header/footer and a flickering
     /// scroll indicator, and checks the stitched result pixel by pixel.
     private static func stitchTest() {
         func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
@@ -233,7 +233,7 @@ enum SelfTest {
 
     }
 
-    /// `PSE --replay <dir> [scale]`: feeds saved debug frames to the stitcher and prints its decisions.
+    /// `Inkshot --replay <dir> [scale]`: feeds saved debug frames to the stitcher and prints its decisions.
     private static func replay(_ dir: URL) {
         let args = CommandLine.arguments
         let scale = args.last.flatMap { Double($0) }.map { CGFloat($0) } ?? 2
@@ -255,7 +255,7 @@ enum SelfTest {
         exit(0)
     }
 
-    /// `PSE --web-test <url> <out.png> [width] [mobile]`: full-page render without UI.
+    /// `Inkshot --web-test <url> <out.png> [width] [mobile]`: full-page render without UI.
     private static func webTest(url: String, out: String, width: Double, mobile: Bool) {
         Task { @MainActor in
             let start = Date()
@@ -271,7 +271,7 @@ enum SelfTest {
         }
     }
 
-    /// `PSE --loupe-test <out.png>`: draws the overlay with the loupe over a synthetic screen.
+    /// `Inkshot --loupe-test <out.png>`: draws the overlay with the loupe over a synthetic screen.
     private static func loupeTest(out: String) {
         let w = 1600, h = 1000   // 800×500 pt at 2x
         let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
@@ -281,7 +281,7 @@ enum SelfTest {
         ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
-        ("Pixel-perfect PSE" as NSString).draw(at: CGPoint(x: 200, y: 500), withAttributes: [
+        ("Pixel-perfect Inkshot" as NSString).draw(at: CGPoint(x: 200, y: 500), withAttributes: [
             .font: NSFont.systemFont(ofSize: 90, weight: .bold), .foregroundColor: NSColor.systemPurple])
         NSGraphicsContext.restoreGraphicsState()
         ctx.setFillColor(NSColor.systemOrange.cgColor)
@@ -301,7 +301,7 @@ enum SelfTest {
         exit(0)
     }
 
-    /// `PSE --highlight-test <out.png>`: yellow highlighter on a dark UI and on a light page.
+    /// `Inkshot --highlight-test <out.png>`: yellow highlighter on a dark UI and on a light page.
     private static func highlightTest(out: String) {
         let w = 1400, h = 400
         let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
@@ -339,7 +339,7 @@ enum SelfTest {
                             bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
         ctx.setFillColor(NSColor.systemPink.cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: 300, height: 200))
-        let pb = NSPasteboard(name: NSPasteboard.Name("pse-selftest-\(UUID().uuidString)"))
+        let pb = NSPasteboard(name: NSPasteboard.Name("inkshot-selftest-\(UUID().uuidString)"))
         ImageExport.copyToPasteboard(ctx.makeImage()!, scale: 2, pasteboard: pb)
         check(pb.types?.contains(.png) == true && pb.types?.contains(.tiff) == true, "pasteboard offers PNG and TIFF")
         let png = pb.data(forType: .png).flatMap { NSBitmapImageRep(data: $0) }

@@ -1,4 +1,4 @@
-/* PSE: he. Key = English text. */
+/* Inkshot: he. Key = English text. */
 
 "Take Screenshot" = "צילום מסך";
 "Full Screen" = "מסך מלא";
@@ -6,8 +6,8 @@
 "⚠︎ Grant Accessibility Access…" = "⚠︎ הענקת גישת נגישות…";
 "⚠︎ Grant Screen Recording Access…" = "⚠︎ הענקת גישה להקלטת מסך…";
 "Launch at Login" = "פתיחה בעת ההתחברות";
-"Quit PSE" = "יציאה מ־PSE";
-"Hide PSE" = "הסתרת PSE";
+"Quit Inkshot" = "יציאה מ־Inkshot";
+"Hide Inkshot" = "הסתרת Inkshot";
 "File" = "קובץ";
 "Save…" = "שמירה…";
 "Close" = "סגירה";
@@ -19,7 +19,7 @@
 "Paste" = "הדבקה";
 "Select All" = "בחירת הכל";
 "Screen Recording access is required" = "נדרשת גישה להקלטת מסך";
-"Open System Settings → Privacy & Security → Screen Recording, turn on PSE, then restart PSE." = "יש לפתוח את הגדרות המערכת ← פרטיות ואבטחה ← הקלטת מסך, להפעיל את PSE ואז להפעיל מחדש את PSE.";
+"Open System Settings → Privacy & Security → Screen Recording, turn on Inkshot, then restart Inkshot." = "יש לפתוח את הגדרות המערכת ← פרטיות ואבטחה ← הקלטת מסך, להפעיל את Inkshot ואז להפעיל מחדש את Inkshot.";
 "Open Settings" = "פתיחת ההגדרות";
 "Cancel" = "ביטול";
 "Screenshot %@ at %@.png" = "צילום מסך %@ בשעה %@.png";
@@ -77,7 +77,7 @@
 "Full page · %d pt wide" = "דף מלא · רוחב %d pt";
 "Capturing %@…" = "מצלם את %@…";
 "Full-page capture failed" = "צילום הדף המלא נכשל";
-"PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE." = "ל־PSE אין הרשאה לקרוא את הכתובת מ־„%@”. יש להפעיל זאת בהגדרות המערכת ← פרטיות ואבטחה ← אוטומציה ← PSE.";
+"Inkshot isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → Inkshot." = "ל־Inkshot אין הרשאה לקרוא את הכתובת מ־„%@”. יש להפעיל זאת בהגדרות המערכת ← פרטיות ואבטחה ← אוטומציה ← Inkshot.";
 "“%@” has no web page open in the front window." = "בחלון הקדמי של „%@” אין דף אינטרנט פתוח.";
 "“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera." = "„%@” אינו דפדפן נתמך. צילום דף מלא עובד עם Safari‏, Chrome‏, Arc‏, Edge‏, Brave‏, Vivaldi ו־Opera.";
 "The page came out empty." = "הדף יצא ריק.";

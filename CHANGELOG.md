@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.0 — 2026-10-12
+- Renamed PSE → Inkshot (bundle id com.viafirst.inkshot); history and settings move over on first launch; store listings in en/ru/he.
+
 ## 0.6.2 — 2026-10-12
 - Fix the adaptive highlighter reading brightness upside down; README with icon and screenshots (--readme-shots).
 

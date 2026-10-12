@@ -27,7 +27,7 @@ enum Permissions {
         CGRequestScreenCaptureAccess()
         let alert = NSAlert()
         alert.messageText = L("Screen Recording access is required")
-        alert.informativeText = L("Open System Settings → Privacy & Security → Screen Recording, turn on PSE, then restart PSE.")
+        alert.informativeText = L("Open System Settings → Privacy & Security → Screen Recording, turn on Inkshot, then restart Inkshot.")
         alert.addButton(withTitle: L("Open Settings"))
         alert.addButton(withTitle: L("Cancel"))
         NSApp.activate(ignoringOtherApps: true)

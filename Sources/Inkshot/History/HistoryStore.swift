@@ -20,7 +20,7 @@ struct EditState: Codable {
     var crop: CGRect
 }
 
-/// Screenshot history on disk: ~/Library/Application Support/PSE/History/<id>/
+/// Screenshot history on disk: ~/Library/Application Support/Inkshot/History/<id>/
 ///   original.png  raw capture       final.png  with annotations
 ///   thumb.jpg     list thumbnail    edits.json annotations + crop (re-editable)
 /// Keeps the newest `limit` unpinned items; pinned ones are never removed automatically.
@@ -39,12 +39,12 @@ final class HistoryStore: ObservableObject {
     }
 
     let root: URL
-    private let io = DispatchQueue(label: "com.viafirst.pse.history", qos: .utility)
+    private let io = DispatchQueue(label: "com.viafirst.inkshot.history", qos: .utility)
     private var thumbnails: [UUID: NSImage] = [:]
 
     init(root: URL? = nil) {
         self.root = root ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("PSE/History", isDirectory: true)
+            .appendingPathComponent("Inkshot/History", isDirectory: true)
         try? FileManager.default.createDirectory(at: self.root, withIntermediateDirectories: true)
         let saved = UserDefaults.standard.integer(forKey: Self.limitKey)
         limit = saved > 0 ? saved : 10

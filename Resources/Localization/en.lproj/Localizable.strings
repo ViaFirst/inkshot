@@ -1,4 +1,4 @@
-/* PSE: en. Key = English text. */
+/* Inkshot: en. Key = English text. */
 
 "Take Screenshot" = "Take Screenshot";
 "Full Screen" = "Full Screen";
@@ -6,8 +6,8 @@
 "⚠︎ Grant Accessibility Access…" = "⚠︎ Grant Accessibility Access…";
 "⚠︎ Grant Screen Recording Access…" = "⚠︎ Grant Screen Recording Access…";
 "Launch at Login" = "Launch at Login";
-"Quit PSE" = "Quit PSE";
-"Hide PSE" = "Hide PSE";
+"Quit Inkshot" = "Quit Inkshot";
+"Hide Inkshot" = "Hide Inkshot";
 "File" = "File";
 "Save…" = "Save…";
 "Close" = "Close";
@@ -19,7 +19,7 @@
 "Paste" = "Paste";
 "Select All" = "Select All";
 "Screen Recording access is required" = "Screen Recording access is required";
-"Open System Settings → Privacy & Security → Screen Recording, turn on PSE, then restart PSE." = "Open System Settings → Privacy & Security → Screen Recording, turn on PSE, then restart PSE.";
+"Open System Settings → Privacy & Security → Screen Recording, turn on Inkshot, then restart Inkshot." = "Open System Settings → Privacy & Security → Screen Recording, turn on Inkshot, then restart Inkshot.";
 "Open Settings" = "Open Settings";
 "Cancel" = "Cancel";
 "Screenshot %@ at %@.png" = "Screenshot %@ at %@.png";
@@ -77,7 +77,7 @@
 "Full page · %d pt wide" = "Full page · %d pt wide";
 "Capturing %@…" = "Capturing %@…";
 "Full-page capture failed" = "Full-page capture failed";
-"PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE." = "PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE.";
+"Inkshot isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → Inkshot." = "Inkshot isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → Inkshot.";
 "“%@” has no web page open in the front window." = "“%@” has no web page open in the front window.";
 "“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera." = "“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera.";
 "The page came out empty." = "The page came out empty.";

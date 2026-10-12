@@ -2,7 +2,7 @@ import AppKit
 import ScreenCaptureKit
 
 /// Records a region while the user (or auto-scroll) scrolls it, and stitches the frames.
-/// Our border and control panel belong to PSE, which the capture filter excludes, so they never
+/// Our border and control panel belong to Inkshot, which the capture filter excludes, so they never
 /// show up in the frames. The panel is non-activating: the scrolled app stays frontmost.
 @MainActor
 final class ScrollCaptureSession {
@@ -16,16 +16,16 @@ final class ScrollCaptureSession {
     private let screen: NSScreen
 
     private let stitcher: ScrollStitcher
-    private let stitchQueue = DispatchQueue(label: "com.viafirst.pse.stitch", qos: .userInitiated)
+    private let stitchQueue = DispatchQueue(label: "com.viafirst.inkshot.stitch", qos: .userInitiated)
     private var border: NSWindow?
     private var panel: ScrollControlPanel?
     private var keyMonitors: [Any] = []
 
-    /// `defaults write com.viafirst.pse debugScrollFrames -bool YES` saves every frame to
-    /// ~/Library/Application Support/PSE/Debug/ so a capture can be replayed with `PSE --replay <dir>`.
+    /// `defaults write com.viafirst.inkshot debugScrollFrames -bool YES` saves every frame to
+    /// ~/Library/Application Support/Inkshot/Debug/ so a capture can be replayed with `Inkshot --replay <dir>`.
     private let debugFolder: URL? = UserDefaults.standard.bool(forKey: "debugScrollFrames")
         ? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("PSE/Debug/scroll-\(Int(Date().timeIntervalSince1970))", isDirectory: true)
+            .appendingPathComponent("Inkshot/Debug/scroll-\(Int(Date().timeIntervalSince1970))", isDirectory: true)
         : nil
     private var frameIndex = 0
 

@@ -2,8 +2,8 @@ import AppKit
 import ImageIO
 import SwiftUI
 
-/// `PSE --readme-shots <desktop.png> <mobile.png> [outDir]`: renders the README screenshots from
-/// PSE's real windows (editor, capture overlay, history) plus a full-page web capture pair.
+/// `Inkshot --readme-shots <desktop.png> <mobile.png> [outDir]`: renders the README screenshots from
+/// Inkshot's real windows (editor, capture overlay, history) plus a full-page web capture pair.
 /// The two inputs are full-page renders from `--web-test` (desktop 1280 and mobile 390, @2x).
 @MainActor
 enum ReadmeShots {
@@ -24,7 +24,7 @@ enum ReadmeShots {
     private static func load(_ url: URL) throws -> CGImage {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
               let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else {
-            throw NSError(domain: "PSE", code: 1, userInfo: [NSLocalizedDescriptionKey: "cannot read \(url.path)"])
+            throw NSError(domain: "Inkshot", code: 1, userInfo: [NSLocalizedDescriptionKey: "cannot read \(url.path)"])
         }
         return img
     }
@@ -37,7 +37,7 @@ enum ReadmeShots {
 
         // 1. Editor with annotations.
         let store = HistoryStore(root: FileManager.default.temporaryDirectory
-            .appendingPathComponent("pse-readme-\(UUID().uuidString)"))
+            .appendingPathComponent("inkshot-readme-\(UUID().uuidString)"))
         let shot = screen.cropping(to: CGRect(x: 160, y: 120, width: 2240, height: 1360))!
         let item = store.add(image: shot, scale: 2)
         let c = Palette.colors, u: CGFloat = 2 * StrokeSize.m.rawValue
@@ -51,7 +51,7 @@ enum ReadmeShots {
         ], crop: CGRect(x: 0, y: 0, width: shot.width, height: shot.height))
         let editor = EditorWindowController(item: item, image: shot, edits: edits, history: store, screen: nil)
         let editorImage = try await capture(editor.window!, size: CGSize(width: 1180, height: 790))
-        try write(framed(editorImage, title: "PSE — 2240 × 1360"), to: out.appendingPathComponent("editor.png"))
+        try write(framed(editorImage, title: "Inkshot — 2240 × 1360"), to: out.appendingPathComponent("editor.png"))
 
         // 2. Capture overlay: selection, toolbar, loupe.
         let display = DisplayShot(displayID: 0, image: screen, frame: CGRect(x: 0, y: 0, width: 1280, height: 800))
@@ -99,7 +99,7 @@ enum ReadmeShots {
         window.ignoresMouseEvents = true
         window.appearance = NSAppearance(named: .darkAqua)
         window.orderFrontRegardless()
-        guard let view = window.contentView else { throw NSError(domain: "PSE", code: 2) }
+        guard let view = window.contentView else { throw NSError(domain: "Inkshot", code: 2) }
         view.wantsLayer = true
         view.layoutSubtreeIfNeeded()
         view.needsDisplay = true
@@ -112,7 +112,7 @@ enum ReadmeShots {
               let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                   bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue) else {
-            throw NSError(domain: "PSE", code: 3)
+            throw NSError(domain: "Inkshot", code: 3)
         }
         ctx.setFillColor(NSColor(srgbRed: 0.12, green: 0.12, blue: 0.13, alpha: 1).cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))

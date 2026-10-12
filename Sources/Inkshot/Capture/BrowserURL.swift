@@ -10,7 +10,7 @@ enum BrowserURL {
             case let .notBrowser(app):
                 String(format: L("“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera."), app)
             case let .notAllowed(app):
-                String(format: L("PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE."), app)
+                String(format: L("Inkshot isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → Inkshot."), app)
             case let .noPage(app):
                 String(format: L("“%@” has no web page open in the front window."), app)
             }
