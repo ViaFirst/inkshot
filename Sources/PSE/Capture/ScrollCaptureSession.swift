@@ -21,6 +21,14 @@ final class ScrollCaptureSession {
     private var panel: ScrollControlPanel?
     private var keyMonitors: [Any] = []
 
+    /// `defaults write com.viafirst.pse debugScrollFrames -bool YES` saves every frame to
+    /// ~/Library/Application Support/PSE/Debug/ so a capture can be replayed with `PSE --replay <dir>`.
+    private let debugFolder: URL? = UserDefaults.standard.bool(forKey: "debugScrollFrames")
+        ? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("PSE/Debug/scroll-\(Int(Date().timeIntervalSince1970))", isDirectory: true)
+        : nil
+    private var frameIndex = 0
+
     private var running = false
     private var cancelled = false
     private var autoScroll = false
@@ -104,6 +112,15 @@ final class ScrollCaptureSession {
     }
 
     private func stitch(_ image: CGImage) async -> (ScrollStitcher.Result, Int) {
+        if let debugFolder {
+            frameIndex += 1
+            let url = debugFolder.appendingPathComponent(String(format: "frame-%04d.png", frameIndex))
+            let scale = scale
+            stitchQueue.async {
+                try? FileManager.default.createDirectory(at: debugFolder, withIntermediateDirectories: true)
+                if let data = ImageExport.pngData(image, scale: scale) { try? data.write(to: url) }
+            }
+        }
         let stitcher = stitcher
         return await withCheckedContinuation { cont in
             stitchQueue.async { cont.resume(returning: (stitcher.add(image), stitcher.stitchedHeight)) }

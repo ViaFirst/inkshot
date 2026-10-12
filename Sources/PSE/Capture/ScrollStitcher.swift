@@ -96,8 +96,34 @@ final class ScrollStitcher: @unchecked Sendable {
     func suggestedColumns() -> Range<Int>? {
         guard steps >= 2, let most = movingSteps.max(), most >= 2 else { return nil }
         let needed = Int((Double(most) * 0.6).rounded(.up))
-        let core = (0..<width).filter { movingSteps[$0] >= needed && staticSteps[$0] * 5 <= steps }
-        guard var lo = core.first, var hi = core.last else { return nil }
+        let isCore = (0..<width).map { movingSteps[$0] >= needed && staticSteps[$0] * 5 <= steps }
+
+        // Runs of core columns; tiny gaps (column gutters inside the content) don't split a run.
+        let maxGap = Int(12 * scale)
+        var runs: [ClosedRange<Int>] = []
+        for x in 0..<width where isCore[x] {
+            if let last = runs.last, x - last.upperBound <= maxGap + 1 {
+                runs[runs.count - 1] = last.lowerBound...x
+            } else {
+                runs.append(x...x)
+            }
+        }
+        // The widest run is the main column. A neighbouring run joins only if it's wide too and the
+        // gap between them is empty (a two-column article); thin slivers at the edges (page
+        // background, scroll indicator) are ignored.
+        guard let main = runs.max(by: { $0.count < $1.count }) else { return nil }
+        func emptyGap(_ r: Range<Int>) -> Bool {
+            r.allSatisfy { staticSteps[$0] == 0 && movingSteps[$0] * 10 <= most }
+        }
+        var lo = main.lowerBound, hi = main.upperBound
+        for run in runs.reversed() where run.upperBound < lo {
+            guard run.count >= width / 10, emptyGap((run.upperBound + 1)..<lo) else { break }
+            lo = run.lowerBound
+        }
+        for run in runs where run.lowerBound > hi {
+            guard run.count >= width / 10, emptyGap((hi + 1)..<run.lowerBound) else { break }
+            hi = run.upperBound
+        }
 
         let pad = Int(8 * scale)
         var k = 0
@@ -110,6 +136,18 @@ final class ScrollStitcher: @unchecked Sendable {
         let right = width - 1 - hi >= minCut ? hi + 1 : width
         guard left > 0 || right < width, right - left >= width / 4 else { return nil }
         return left..<right
+    }
+
+    /// Column statistics in bins, for diagnosing the auto-crop.
+    func debugSummary(bin: Int = 20) -> String {
+        guard !movingSteps.isEmpty else { return "steps: \(steps), no motion" }
+        var lines = ["steps: \(steps), width: \(width), footer: \(footer)", "x-range  moving  static"]
+        for start in stride(from: 0, to: width, by: bin) {
+            let r = start..<min(width, start + bin)
+            let m = r.map { movingSteps[$0] }.max() ?? 0, st = r.map { staticSteps[$0] }.max() ?? 0
+            lines.append(String(format: "%4d-%4d  %6d  %6d", r.lowerBound, r.upperBound, m, st))
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: Internals

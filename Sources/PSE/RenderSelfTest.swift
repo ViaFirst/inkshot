@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 
 /// `PSE --render-test <out.png>`: renders sample annotations on a synthetic image (no permissions needed).
 @MainActor
@@ -6,6 +7,7 @@ enum RenderSelfTest {
     static func runIfRequested() {
         let args = CommandLine.arguments
         if args.contains("--stitch-test") { stitchTest() }
+        if let i = args.firstIndex(of: "--replay"), i + 1 < args.count { replay(URL(fileURLWithPath: args[i + 1])) }
         if let i = args.firstIndex(of: "--history-test"), i + 1 < args.count {
             historyTest(root: URL(fileURLWithPath: args[i + 1]))
         }
@@ -155,7 +157,7 @@ enum RenderSelfTest {
     }
 
     /// Like 3dnews: a left menu that scrolls away, a fixed "back to top" button, a fixed right
-    /// panel and the main column in the middle. Auto-crop should keep only the middle.
+    /// panel, thin scrolling slivers at both edges and the main column in the middle. Auto-crop should keep only the middle.
     private static func sidebarTest() {
         func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
         let w = 700, h = 500
@@ -172,7 +174,9 @@ enum RenderSelfTest {
                 let page = o + y
                 for x in 0..<w {
                     var v = dark
-                    if x < 140 {
+                    if x < 10 || x >= 690 {
+                        v = noise(x, page / 4) % 2 == 0 ? 0xFF2A_2A2A : 0xFF26_2626               // scrolling page edge
+                    } else if x < 140 {
                         if page < 600, noise(x / 5, page / 3) % 3 == 0 { v = 0xFF66_99FF } // menu, scrolls away
                         if (380..<400).contains(y), (50..<90).contains(x) { v = 0xFFEE_EEEE } // fixed button
                     } else if (160..<580).contains(x) {
@@ -196,5 +200,27 @@ enum RenderSelfTest {
         check((130...160).contains(cols.lowerBound), "left menu + fixed button cut off")
         check((580...600).contains(cols.upperBound), "fixed right panel cut off")
 
+    }
+
+    /// `PSE --replay <dir> [scale]`: feeds saved debug frames to the stitcher and prints its decisions.
+    private static func replay(_ dir: URL) {
+        let args = CommandLine.arguments
+        let scale = args.last.flatMap { Double($0) }.map { CGFloat($0) } ?? 2
+        let files = ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
+            .filter { $0.pathExtension == "png" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let stitcher = ScrollStitcher(scale: scale)
+        var log: [String] = []
+        for f in files {
+            guard let src = CGImageSourceCreateWithURL(f as CFURL, nil),
+                  let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { continue }
+            log.append("\(f.lastPathComponent): \(stitcher.add(img)) h=\(stitcher.stitchedHeight)")
+        }
+        print(log.joined(separator: "\n"))
+        print(stitcher.debugSummary())
+        print("suggested:", stitcher.suggestedColumns().map { "\($0)" } ?? "none")
+        if let out = stitcher.makeImage(), let data = ImageExport.pngData(out, scale: scale) {
+            try? data.write(to: dir.appendingPathComponent("stitched.png"))
+        }
+        exit(0)
     }
 }
