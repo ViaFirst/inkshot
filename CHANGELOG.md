@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.1 — 2026-10-12
+- App icon: a tilted screenshot card in viewfinder corners, highlighted and pointed at by an annotation arrow.
+
 ## 0.6.0 — 2026-10-12
 - Pixel loupe next to the pointer (position and colour), eyedropper on C.
 - Adaptive highlighter: multiply on light content, screen on dark content.
