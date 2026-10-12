@@ -68,3 +68,18 @@
 "Auto-scroll" = "Auto-scroll";
 "Stop auto-scroll" = "Stop auto-scroll";
 "Done (or press the hotkey again)" = "Done (or press the hotkey again)";
+
+/* Full web page */
+"Full Web Page (P)" = "Full Web Page (P)";
+"Page width: as the window (1)" = "Page width: as the window (1)";
+"Page width: desktop 1440 (2)" = "Page width: desktop 1440 (2)";
+"Page width: mobile 390 (3)" = "Page width: mobile 390 (3)";
+"Full page · %d pt wide" = "Full page · %d pt wide";
+"Capturing %@…" = "Capturing %@…";
+"Full-page capture failed" = "Full-page capture failed";
+"PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE." = "PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE.";
+"“%@” has no web page open in the front window." = "“%@” has no web page open in the front window.";
+"“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera." = "“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera.";
+"The page came out empty." = "The page came out empty.";
+"The page could not be loaded: %@" = "The page could not be loaded: %@";
+"The page took too long to load." = "The page took too long to load.";

@@ -4,14 +4,20 @@ import ImageIO
 /// `PSE --render-test <out.png>`: renders sample annotations on a synthetic image (no permissions needed).
 @MainActor
 enum RenderSelfTest {
-    static func runIfRequested() {
+    /// Returns true when a test needs the run loop (it exits by itself when done).
+    static func runIfRequested() -> Bool {
         let args = CommandLine.arguments
+        if let i = args.firstIndex(of: "--web-test"), i + 2 < args.count {
+            webTest(url: args[i + 1], out: args[i + 2], width: args.dropFirst(i + 3).first.flatMap { Double($0) } ?? 1280,
+                    mobile: args.contains("mobile"))
+            return true
+        }
         if args.contains("--stitch-test") { stitchTest() }
         if let i = args.firstIndex(of: "--replay"), i + 1 < args.count { replay(URL(fileURLWithPath: args[i + 1])) }
         if let i = args.firstIndex(of: "--history-test"), i + 1 < args.count {
             historyTest(root: URL(fileURLWithPath: args[i + 1]))
         }
-        guard let i = args.firstIndex(of: "--render-test"), i + 1 < args.count else { return }
+        guard let i = args.firstIndex(of: "--render-test"), i + 1 < args.count else { return false }
         let w = 1200, h = 700
         let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
                             space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -222,5 +228,21 @@ enum RenderSelfTest {
             try? data.write(to: dir.appendingPathComponent("stitched.png"))
         }
         exit(0)
+    }
+
+    /// `PSE --web-test <url> <out.png> [width] [mobile]`: full-page render without UI.
+    private static func webTest(url: String, out: String, width: Double, mobile: Bool) {
+        Task { @MainActor in
+            let start = Date()
+            let renderer = WebPageRenderer(width: CGFloat(width), mobile: mobile)
+            do {
+                let (image, scale) = try await renderer.render(URL(string: url)!, scale: 2)
+                try ImageExport.pngData(image, scale: scale)!.write(to: URL(fileURLWithPath: out))
+                print("OK \(image.width)x\(image.height) scale \(scale) in \(Int(Date().timeIntervalSince(start)))s, passes: \(renderer.attempts)")
+            } catch {
+                print("ERROR", error.localizedDescription)
+            }
+            exit(0)
+        }
     }
 }

@@ -34,20 +34,26 @@ enum ScreenGrabber {
     }
 }
 
+struct WindowInfo {
+    /// Global CG coordinates (points, top-left origin).
+    let frame: CGRect
+    let pid: pid_t
+}
+
 enum WindowList {
-    /// Frames of normal app windows, front to back, in global CG coordinates.
-    static func frontToBack() -> [CGRect] {
+    /// Normal app windows, front to back.
+    static func frontToBack() -> [WindowInfo] {
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
         guard let info = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else { return [] }
-        let pid = ProcessInfo.processInfo.processIdentifier
+        let ownPid = ProcessInfo.processInfo.processIdentifier
         return info.compactMap { w in
             guard (w[kCGWindowLayer as String] as? Int) == 0,
-                  (w[kCGWindowOwnerPID as String] as? Int32) != pid,
+                  let pid = w[kCGWindowOwnerPID as String] as? pid_t, pid != ownPid,
                   (w[kCGWindowAlpha as String] as? Double ?? 1) > 0,
                   let bounds = w[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary),
                   rect.width > 40, rect.height > 40 else { return nil }
-            return rect
+            return WindowInfo(frame: rect, pid: pid)
         }
     }
 }

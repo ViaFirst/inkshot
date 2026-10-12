@@ -1,8 +1,11 @@
 import AppKit
 
 MainActor.assumeIsolated {
-    RenderSelfTest.runIfRequested()
     let app = NSApplication.shared
+    if RenderSelfTest.runIfRequested() {
+        app.setActivationPolicy(.prohibited)
+        app.run()
+    }
     let delegate = AppDelegate()
     app.delegate = delegate
     app.setActivationPolicy(.accessory)

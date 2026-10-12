@@ -68,3 +68,18 @@
 "Auto-scroll" = "גלילה אוטומטית";
 "Stop auto-scroll" = "עצירת הגלילה האוטומטית";
 "Done (or press the hotkey again)" = "סיום (או לחיצה נוספת על קיצור המקשים)";
+
+/* Full web page */
+"Full Web Page (P)" = "דף אינטרנט מלא (P)";
+"Page width: as the window (1)" = "רוחב הדף: כמו החלון (1)";
+"Page width: desktop 1440 (2)" = "רוחב הדף: מחשב 1440 (2)";
+"Page width: mobile 390 (3)" = "רוחב הדף: נייד 390 (3)";
+"Full page · %d pt wide" = "דף מלא · רוחב %d pt";
+"Capturing %@…" = "מצלם את %@…";
+"Full-page capture failed" = "צילום הדף המלא נכשל";
+"PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE." = "ל־PSE אין הרשאה לקרוא את הכתובת מ־„%@”. יש להפעיל זאת בהגדרות המערכת ← פרטיות ואבטחה ← אוטומציה ← PSE.";
+"“%@” has no web page open in the front window." = "בחלון הקדמי של „%@” אין דף אינטרנט פתוח.";
+"“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera." = "„%@” אינו דפדפן נתמך. צילום דף מלא עובד עם Safari‏, Chrome‏, Arc‏, Edge‏, Brave‏, Vivaldi ו־Opera.";
+"The page came out empty." = "הדף יצא ריק.";
+"The page could not be loaded: %@" = "לא ניתן היה לטעון את הדף: %@";
+"The page took too long to load." = "טעינת הדף ארכה זמן רב מדי.";

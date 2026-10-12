@@ -11,6 +11,7 @@ enum Permissions {
     enum Pane: String {
         case accessibility = "Privacy_Accessibility"
         case screenRecording = "Privacy_ScreenCapture"
+        case automation = "Privacy_Automation"
     }
 
     static func openSettings(_ pane: Pane) {

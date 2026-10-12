@@ -49,8 +49,9 @@ final class ScrollCaptureSession {
                width: region.width, height: region.height)
     }
 
-    func start() {
+    func start(autoScroll: Bool) {
         showChrome()
+        if autoScroll { toggleAutoScroll() }
         running = true
         Task { @MainActor in await run() }
     }

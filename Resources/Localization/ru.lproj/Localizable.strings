@@ -68,3 +68,18 @@
 "Auto-scroll" = "Автопрокрутка";
 "Stop auto-scroll" = "Остановить автопрокрутку";
 "Done (or press the hotkey again)" = "Готово (или нажми хоткей ещё раз)";
+
+/* Full web page */
+"Full Web Page (P)" = "Вся веб-страница (P)";
+"Page width: as the window (1)" = "Ширина страницы: как окно (1)";
+"Page width: desktop 1440 (2)" = "Ширина страницы: десктоп 1440 (2)";
+"Page width: mobile 390 (3)" = "Ширина страницы: мобильный 390 (3)";
+"Full page · %d pt wide" = "Вся страница · ширина %d pt";
+"Capturing %@…" = "Снимаю %@…";
+"Full-page capture failed" = "Не удалось снять страницу";
+"PSE isn't allowed to read the address from “%@”. Turn it on in System Settings → Privacy & Security → Automation → PSE." = "PSE не может прочитать адрес из «%@». Включи доступ: Системные настройки → Конфиденциальность и безопасность → Автоматизация → PSE.";
+"“%@” has no web page open in the front window." = "В переднем окне «%@» не открыта веб-страница.";
+"“%@” is not a supported browser. Full-page capture works with Safari, Chrome, Arc, Edge, Brave, Vivaldi and Opera." = "«%@» — неподдерживаемый браузер. Снимок всей страницы работает с Safari, Chrome, Arc, Edge, Brave, Vivaldi и Opera.";
+"The page came out empty." = "Страница получилась пустой.";
+"The page could not be loaded: %@" = "Не удалось загрузить страницу: %@";
+"The page took too long to load." = "Страница грузилась слишком долго.";

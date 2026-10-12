@@ -29,6 +29,7 @@ echo "Built $APP"
 
 if [ "${1:-}" = "install" ]; then
   pkill -x PSE 2>/dev/null || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x PSE >/dev/null || break; sleep 0.3; done
   mkdir -p "$HOME/Applications"
   rm -rf "$HOME/Applications/PSE.app"
   cp -R "$APP" "$HOME/Applications/"

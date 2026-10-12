@@ -30,6 +30,8 @@
     <string>14.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>PSE reads the address of the open browser tab to capture the whole web page.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>
