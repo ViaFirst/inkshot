@@ -58,3 +58,13 @@
 "Pin (never delete automatically)" = "Pin (never delete automatically)";
 "Open in Editor" = "Open in Editor";
 "Delete" = "Delete";
+
+/* Scrolling capture */
+"Scrolling Capture (S)" = "Scrolling Capture (S)";
+"Scroll down slowly…" = "Scroll down slowly…";
+"Height: %d px" = "Height: %d px";
+"Too fast: scroll back up a little" = "Too fast: scroll back up a little";
+"Maximum height reached" = "Maximum height reached";
+"Auto-scroll" = "Auto-scroll";
+"Stop auto-scroll" = "Stop auto-scroll";
+"Done (or press the hotkey again)" = "Done (or press the hotkey again)";

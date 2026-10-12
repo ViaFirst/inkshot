@@ -26,6 +26,7 @@ final class CanvasView: NSView, NSTextFieldDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
+                (self.enclosingScrollView as? EditorScrollView)?.updateDocumentSize()
                 self.needsDisplay = true
                 self.window?.invalidateCursorRects(for: self)
             }
@@ -48,6 +49,13 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     }
 
     // MARK: Geometry
+
+    /// Height needed to show the crop at fit-width (never upscaled); tall captures scroll.
+    func preferredHeight(forWidth width: CGFloat) -> CGFloat {
+        let c = model.crop
+        let s = min((width - 32) / c.width, 1 / model.scale)
+        return c.height * s + 32
+    }
 
     /// Where the crop region lands in the view (never upscaled beyond 1 point per image point).
     private var displayRect: CGRect {
@@ -335,4 +343,32 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     @objc func undo(_ sender: Any?) { model.undo() }
     @objc func redo(_ sender: Any?) { model.redo() }
     @objc func delete(_ sender: Any?) { model.deleteSelected() }
+}
+
+/// Scrolls the canvas vertically when the image is taller than the window (scrolling captures).
+final class EditorScrollView: NSScrollView {
+    private let canvas: CanvasView
+
+    init(canvas: CanvasView) {
+        self.canvas = canvas
+        super.init(frame: .zero)
+        documentView = canvas
+        hasVerticalScroller = true
+        autohidesScrollers = true
+        borderType = .noBorder
+        backgroundColor = NSColor.windowBackgroundColor.blended(withFraction: 0.35, of: .black) ?? .darkGray
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        updateDocumentSize()
+    }
+
+    func updateDocumentSize() {
+        let width = contentSize.width
+        let size = CGSize(width: width, height: max(contentSize.height, canvas.preferredHeight(forWidth: width)))
+        if canvas.frame.size != size { canvas.setFrameSize(size) }
+    }
 }

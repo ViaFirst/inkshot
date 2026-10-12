@@ -58,3 +58,13 @@
 "Pin (never delete automatically)" = "הצמדה (ללא מחיקה אוטומטית)";
 "Open in Editor" = "פתיחה בעורך";
 "Delete" = "מחיקה";
+
+/* Scrolling capture */
+"Scrolling Capture (S)" = "צילום עם גלילה (S)";
+"Scroll down slowly…" = "יש לגלול למטה לאט…";
+"Height: %d px" = "גובה: %d px";
+"Too fast: scroll back up a little" = "מהר מדי: יש לגלול מעט למעלה";
+"Maximum height reached" = "הגעת לגובה המרבי";
+"Auto-scroll" = "גלילה אוטומטית";
+"Stop auto-scroll" = "עצירת הגלילה האוטומטית";
+"Done (or press the hotkey again)" = "סיום (או לחיצה נוספת על קיצור המקשים)";

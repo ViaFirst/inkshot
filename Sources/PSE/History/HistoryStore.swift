@@ -184,7 +184,12 @@ final class HistoryStore: ObservableObject {
 
     // MARK: Image helpers
 
-    nonisolated private static func makeThumbnail(_ image: CGImage, maxSide: CGFloat = 480) -> CGImage? {
+    nonisolated private static func makeThumbnail(_ source: CGImage, maxSide: CGFloat = 480) -> CGImage? {
+        // Tall (scrolling) captures: thumbnail of the top part instead of a thin strip.
+        let maxHeight = Int(Double(source.width) * 1.25)
+        let image = source.height > maxHeight
+            ? source.cropping(to: CGRect(x: 0, y: 0, width: source.width, height: maxHeight)) ?? source
+            : source
         let k = min(1, maxSide / CGFloat(max(image.width, image.height)))
         let w = max(1, Int(CGFloat(image.width) * k)), h = max(1, Int(CGFloat(image.height) * k))
         guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,

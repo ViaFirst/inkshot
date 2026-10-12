@@ -58,3 +58,13 @@
 "Pin (never delete automatically)" = "Закрепить (не удалять автоматически)";
 "Open in Editor" = "Открыть в редакторе";
 "Delete" = "Удалить";
+
+/* Scrolling capture */
+"Scrolling Capture (S)" = "Скрин с прокруткой (S)";
+"Scroll down slowly…" = "Медленно прокручивай вниз…";
+"Height: %d px" = "Высота: %d px";
+"Too fast: scroll back up a little" = "Слишком быстро: прокрути чуть назад";
+"Maximum height reached" = "Достигнута максимальная высота";
+"Auto-scroll" = "Автопрокрутка";
+"Stop auto-scroll" = "Остановить автопрокрутку";
+"Done (or press the hotkey again)" = "Готово (или нажми хоткей ещё раз)";

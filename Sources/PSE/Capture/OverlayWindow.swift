@@ -86,7 +86,7 @@ final class OverlayView: NSView {
 
         let focus = mode == .window ? hoveredWindow : selection
         guard let r = focus else {
-            if mode == .area, dragStart == nil, let m = mouse { drawCrosshair(at: m) }
+            if mode != .window, dragStart == nil, let m = mouse { drawCrosshair(at: m) }
             return
         }
 
@@ -156,7 +156,7 @@ final class OverlayView: NSView {
         switch mode {
         case .window:
             if let r = windowAt(p) { controller?.finish(self, rect: r) }
-        case .area:
+        case .area, .scroll:
             dragStart = p
             selection = nil
             toolbar?.isHidden = true
@@ -164,7 +164,7 @@ final class OverlayView: NSView {
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard mode == .area, let start = dragStart else { return }
+        guard mode != .window, let start = dragStart else { return }
         var p = convert(event.locationInWindow, from: nil)
         if event.modifierFlags.contains(.shift) {
             let side = max(abs(p.x - start.x), abs(p.y - start.y))
@@ -176,10 +176,12 @@ final class OverlayView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard mode == .area, dragStart != nil else { return }
+        guard mode != .window, dragStart != nil else { return }
         dragStart = nil
         toolbar?.isHidden = false
-        if let r = selection, r.width >= 3, r.height >= 3 {
+        if mode == .scroll, let r = selection, r.width >= 40, r.height >= 40 {
+            controller?.beginScroll(self, rect: r)
+        } else if mode == .area, let r = selection, r.width >= 3, r.height >= 3 {
             controller?.finish(self, rect: r)
         } else {
             selection = nil
@@ -197,6 +199,7 @@ final class OverlayView: NSView {
         case 53: controller?.cancel()                       // Esc
         case 0: controller?.setMode(.area)                  // A
         case 13: controller?.setMode(.window)               // W
+        case 1: controller?.setMode(.scroll)                // S
         case 49: controller?.setMode(mode == .area ? .window : .area) // Space
         case 3: controller?.finish(self, rect: bounds)      // F
         default: super.keyDown(with: event)
@@ -222,15 +225,16 @@ final class OverlayToolbar: NSVisualEffectView {
 
         let area = button("rectangle.dashed", tip: L("Area (A)"), #selector(pickArea))
         let window = button("macwindow", tip: L("Window (W)"), #selector(pickWindow))
+        let scroll = button("scroll", tip: L("Scrolling Capture (S)"), #selector(pickScroll))
         let full = button("display", tip: L("Full Screen (F)"), #selector(pickFull))
         let close = button("xmark", tip: L("Cancel (Esc)"), #selector(cancel))
-        modeButtons = [(.area, area), (.window, window)]
+        modeButtons = [(.area, area), (.window, window), (.scroll, scroll)]
 
         let divider = NSBox()
         divider.boxType = .separator
         divider.heightAnchor.constraint(equalToConstant: 22).isActive = true
 
-        let stack = NSStackView(views: [area, window, full, divider, close])
+        let stack = NSStackView(views: [area, window, scroll, full, divider, close])
         stack.spacing = 4
         stack.edgeInsets = NSEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
         let size = stack.fittingSize
@@ -267,6 +271,7 @@ final class OverlayToolbar: NSVisualEffectView {
 
     @objc private func pickArea() { controller?.setMode(.area) }
     @objc private func pickWindow() { controller?.setMode(.window) }
+    @objc private func pickScroll() { controller?.setMode(.scroll) }
     @objc private func cancel() { controller?.cancel() }
     @objc private func pickFull() {
         guard let view = superview as? OverlayView else { return }

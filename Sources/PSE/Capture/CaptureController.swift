@@ -1,7 +1,7 @@
 import AppKit
 
 enum CaptureMode {
-    case area, window
+    case area, window, scroll
 }
 
 /// Freezes all displays, shows an overlay per screen and hands the chosen region to the editor.
@@ -13,10 +13,15 @@ final class CaptureController {
     private(set) var mode: CaptureMode = .area
     private var overlays: [OverlayWindow] = []
     private var busy = false
+    private var scrollSession: ScrollCaptureSession?
+    private var previousApp: NSRunningApplication?
 
     func start(fullScreen: Bool = false) {
+        // The hotkey during a scrolling capture means "done".
+        if let scrollSession { return scrollSession.finish() }
         guard !busy, Permissions.ensureScreenCapture() else { return }
         busy = true
+        previousApp = NSWorkspace.shared.frontmostApplication
         Task { @MainActor in
             do {
                 let shots = try await ScreenGrabber.captureAllDisplays()
@@ -55,6 +60,30 @@ final class CaptureController {
     func cancel() {
         close()
         onCancel?()
+    }
+
+    /// Area picked in scroll mode: hand focus back to the app being captured and start recording.
+    func beginScroll(_ view: OverlayView, rect: CGRect) {
+        guard let screen = view.window?.screen else { return cancel() }
+        let shot = view.shot
+        close()
+        busy = true
+        if let previousApp, previousApp != NSRunningApplication.current { previousApp.activate() }
+
+        let session = ScrollCaptureSession(displayID: shot.displayID, displayFrame: shot.frame,
+                                           region: rect, scale: shot.scale, screen: screen)
+        session.onFinish = { [weak self] image in
+            guard let self else { return }
+            self.scrollSession = nil
+            self.busy = false
+            if let image {
+                self.onCaptured?(image, shot.scale, screen)
+            } else {
+                self.onCancel?()
+            }
+        }
+        scrollSession = session
+        session.start()
     }
 
     private func present(shots: [DisplayShot], windows: [CGRect], mouseScreen: NSScreen?) {

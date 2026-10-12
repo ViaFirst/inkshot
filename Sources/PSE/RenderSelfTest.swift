@@ -5,6 +5,7 @@ import AppKit
 enum RenderSelfTest {
     static func runIfRequested() {
         let args = CommandLine.arguments
+        if args.contains("--stitch-test") { stitchTest() }
         if let i = args.firstIndex(of: "--history-test"), i + 1 < args.count {
             historyTest(root: URL(fileURLWithPath: args[i + 1]))
         }
@@ -77,6 +78,78 @@ enum RenderSelfTest {
         reloaded.limit = 1
         check(reloaded.items.count == 2 && reloaded.pinned.count == 1, "lowering the limit prunes, pin stays")
         UserDefaults.standard.removeObject(forKey: "historyLimit")
+        exit(0)
+    }
+
+    /// `PSE --stitch-test`: scrolls a synthetic page with a sticky header/footer and a flickering
+    /// scroll indicator, and checks the stitched result pixel by pixel.
+    private static func stitchTest() {
+        func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
+        let w = 600, h = 500, header = 60, footer = 40, view = h - header - footer
+        let pageRows = 3000
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        func noise(_ a: Int, _ b: Int) -> UInt32 {
+            var x = UInt32(truncatingIfNeeded: a &* 73856093 ^ b &* 19349663)
+            x ^= x >> 13; x = x &* 0x5bd1e995; x ^= x >> 15
+            return x
+        }
+        // Text-like content; rows 800..<950 are blank (uniform) to test ambiguity.
+        func contentPixel(_ x: Int, _ y: Int) -> UInt32 {
+            if (800..<950).contains(y) { return 0xFFFF_FFFF }
+            return noise(x / 6, y / 2) % 3 == 0 ? 0xFF20_2020 : 0xFFF5_F5F5
+        }
+        func frame(offset o: Int, flicker: Int) -> CGImage {
+            var px = [UInt32](repeating: 0, count: w * h)
+            for y in 0..<h {
+                for x in 0..<w {
+                    let v: UInt32
+                    if y < header { v = 0xFF33_66CC }
+                    else if y >= h - footer { v = 0xFFCC_3333 }
+                    else { v = contentPixel(x, o + y - header) }
+                    px[y * w + x] = v
+                }
+                // overlay scroll indicator at the right edge, different every frame
+                for x in (w - 12)..<(w - 4) { px[y * w + x] = noise(flicker, y / 40) | 0xFF00_0000 }
+            }
+            let data = Data(bytes: px, count: px.count * 4)
+            return CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4, space: space,
+                           bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue),
+                           provider: CGDataProvider(data: data as CFData)!, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
+        }
+
+        let stitcher = ScrollStitcher(scale: 2)
+        // pauses, small and big steps, a step back up, a too-fast jump and recovery
+        let offsets = [0, 0, 40, 40, 160, 400, 380, 650, 900, 1200, 2000, 1250, 1500, 1800, 1800, 2100, 2400]
+        var results: [ScrollStitcher.Result] = []
+        var accepted = 0
+        for (i, o) in offsets.enumerated() {
+            let r = stitcher.add(frame(offset: o, flicker: i))
+            results.append(r)
+            if case .appended = r { accepted = o }
+        }
+        print("results:", results.map { "\($0)" }.joined(separator: " "))
+        check({ if case .first = results[0] { true } else { false } }(), "first frame")
+        check({ if case .noMotion = results[1] { true } else { false } }(), "pause = no motion")
+        check({ if case .lost = results[10] { true } else { false } }(), "too-fast jump detected")
+        check(accepted == 2400, "recovered and reached the last offset (got \(accepted))")
+
+        guard let out = stitcher.makeImage() else { return check(false, "image") }
+        let expectedRows = header + accepted + view + footer
+        check(out.height == expectedRows && out.width == w, "size \(out.width)x\(out.height), expected \(w)x\(expectedRows)")
+
+        let bytes = CFDataGetBytePtr(out.dataProvider!.data)!
+        var mismatches = 0
+        for y in 0..<out.height {
+            for x in 0..<(w - 24) {   // scroll-indicator strip is allowed to differ
+                let expected: UInt32 = y < header ? 0xFF33_66CC
+                    : y >= out.height - footer ? 0xFFCC_3333
+                    : contentPixel(x, y - header)
+                let i = (y * w + x) * 4
+                let got = UInt32(bytes[i]) | UInt32(bytes[i + 1]) << 8 | UInt32(bytes[i + 2]) << 16 | UInt32(bytes[i + 3]) << 24
+                if got != expected { mismatches += 1 }
+            }
+        }
+        check(mismatches == 0, "pixel-exact page, header and footer once (\(mismatches) wrong pixels)")
         exit(0)
     }
 }

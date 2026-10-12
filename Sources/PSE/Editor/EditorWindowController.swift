@@ -52,19 +52,20 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             onInteract: { [weak self] in self?.focusCanvas() }
         ))
         let content = NSView()
+        let scroll = EditorScrollView(canvas: canvas)
         toolbar.translatesAutoresizingMaskIntoConstraints = false
-        canvas.translatesAutoresizingMaskIntoConstraints = false
+        scroll.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(toolbar)
-        content.addSubview(canvas)
+        content.addSubview(scroll)
         NSLayoutConstraint.activate([
             toolbar.topAnchor.constraint(equalTo: content.topAnchor),
             toolbar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             toolbar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
             toolbar.heightAnchor.constraint(equalToConstant: toolbarHeight),
-            canvas.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
-            canvas.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            canvas.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            canvas.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            scroll.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            scroll.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
         window.contentView = content
         window.initialFirstResponder = canvas
