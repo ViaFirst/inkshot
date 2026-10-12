@@ -86,3 +86,7 @@
 
 /* Eyedropper */
 "%@ copied" = "%@ copied";
+
+/* Misc */
+"OK" = "OK";
+"More actions" = "More actions";

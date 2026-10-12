@@ -86,3 +86,7 @@
 
 /* Eyedropper */
 "%@ copied" = "%@ הועתק";
+
+/* Misc */
+"OK" = "אישור";
+"More actions" = "פעולות נוספות";

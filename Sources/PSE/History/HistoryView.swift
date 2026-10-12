@@ -132,6 +132,7 @@ private struct HistoryCard: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
+                .help(L("More actions"))
             }
         }
         .padding(8)

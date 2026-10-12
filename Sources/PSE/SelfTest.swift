@@ -3,7 +3,7 @@ import ImageIO
 
 /// `PSE --render-test <out.png>`: renders sample annotations on a synthetic image (no permissions needed).
 @MainActor
-enum RenderSelfTest {
+enum SelfTest {
     /// Returns true when a test needs the run loop (it exits by itself when done).
     static func runIfRequested() -> Bool {
         let args = CommandLine.arguments
@@ -22,10 +22,21 @@ enum RenderSelfTest {
         }
         if let i = args.firstIndex(of: "--loupe-test"), i + 1 < args.count { loupeTest(out: args[i + 1]) }
         if let i = args.firstIndex(of: "--highlight-test"), i + 1 < args.count { highlightTest(out: args[i + 1]) }
-        if args.contains("--stitch-test") { stitchTest() }
+        if args.contains("--self-test") {
+            // All logic tests; throwaway folders and pasteboards only, never the user's data.
+            stitchTest()
+            let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pse-selftest-\(UUID().uuidString)")
+            historyTest(root: dir)
+            try? FileManager.default.removeItem(at: dir)
+            pasteboardTest()
+            print("ALL PASS")
+            exit(0)
+        }
+        if args.contains("--stitch-test") { stitchTest(); exit(0) }
         if let i = args.firstIndex(of: "--replay"), i + 1 < args.count { replay(URL(fileURLWithPath: args[i + 1])) }
         if let i = args.firstIndex(of: "--history-test"), i + 1 < args.count {
             historyTest(root: URL(fileURLWithPath: args[i + 1]))
+            exit(0)
         }
         guard let i = args.firstIndex(of: "--render-test"), i + 1 < args.count else { return false }
         let w = 1200, h = 700
@@ -96,7 +107,6 @@ enum RenderSelfTest {
         reloaded.limit = 1
         check(reloaded.items.count == 2 && reloaded.pinned.count == 1, "lowering the limit prunes, pin stays")
         UserDefaults.standard.removeObject(forKey: "historyLimit")
-        exit(0)
     }
 
     /// `PSE --stitch-test`: scrolls a synthetic page with a sticky header/footer and a flickering
@@ -169,7 +179,6 @@ enum RenderSelfTest {
         check(mismatches == 0, "pixel-exact page, header and footer once (\(mismatches) wrong pixels)")
         check(stitcher.suggestedColumns() == nil, "full-width content: no auto-crop")
         sidebarTest()
-        exit(0)
     }
 
     /// Like 3dnews: a left menu that scrolls away, a fixed "back to top" button, a fixed right
@@ -314,5 +323,23 @@ enum RenderSelfTest {
         try? ImageExport.pngData(model.render(), scale: 1)?.write(to: URL(fileURLWithPath: out))
         print("wrote", out)
         exit(0)
+    }
+
+    /// The pasteboard image is provided lazily: nothing is encoded until it is read.
+    private static func pasteboardTest() {
+        func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
+        let ctx = CGContext(data: nil, width: 300, height: 200, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        ctx.setFillColor(NSColor.systemPink.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: 300, height: 200))
+        let pb = NSPasteboard(name: NSPasteboard.Name("pse-selftest-\(UUID().uuidString)"))
+        ImageExport.copyToPasteboard(ctx.makeImage()!, scale: 2, pasteboard: pb)
+        check(pb.types?.contains(.png) == true && pb.types?.contains(.tiff) == true, "pasteboard offers PNG and TIFF")
+        let png = pb.data(forType: .png).flatMap { NSBitmapImageRep(data: $0) }
+        check(png?.pixelsWide == 300 && png?.pixelsHigh == 200, "PNG encoded on demand, full size")
+        check(png.map { Int($0.size.width) } == 150, "PNG carries Retina DPI (150 pt wide)")
+        check(pb.data(forType: .tiff) != nil, "TIFF on demand")
+        pb.releaseGlobally()
     }
 }

@@ -86,3 +86,7 @@
 
 /* Eyedropper */
 "%@ copied" = "%@ скопирован";
+
+/* Misc */
+"OK" = "OK";
+"More actions" = "Ещё действия";

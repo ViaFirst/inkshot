@@ -21,9 +21,9 @@ enum PageWidth: String, CaseIterable {
     }
 }
 
-/// Renders a whole web page in an off-screen WKWebView and returns one tall image — no stitching.
+/// Renders a whole web page in a hidden WKWebView and returns one tall image — no stitching.
 /// The page is loaded fresh (as a guest: no browser cookies), scrolled through once so lazy images
-/// load, then exported as a single-page PDF of the full content and rasterised.
+/// load, then captured viewport by viewport at exact offsets (see snapshotTiles).
 @MainActor
 final class WebPageRenderer: NSObject, WKNavigationDelegate {
     enum Failure: LocalizedError {
@@ -75,16 +75,6 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
         host.contentView = webView
         super.init()
         webView.navigationDelegate = self
-        // An off-screen window counts as occluded, and WebKit then stops requestAnimationFrame:
-        // GSAP/scroll-reveal content would stay invisible. Turn occlusion detection off (WebKit SPI,
-        // guarded so a future WebKit without it just skips this).
-        let occlusion = NSSelectorFromString("_setWindowOcclusionDetectionEnabled:")
-        if webView.responds(to: occlusion) {
-            typealias SetBool = @convention(c) (AnyObject, Selector, Bool) -> Void
-            unsafeBitCast(webView.method(for: occlusion), to: SetBool.self)(webView, occlusion, false)
-        } else if ProcessInfo.processInfo.environment["PSE_DEBUG"] != nil {
-            FileHandle.standardError.write("no _setWindowOcclusionDetectionEnabled:\n".data(using: .utf8)!)
-        }
         host.orderFrontRegardless()
     }
 
@@ -103,17 +93,6 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
         _ = try? await webView.callAsyncJavaScript(Self.preparePageScript, arguments: [:], contentWorld: .page)
         try checkCancelled()
 
-        let height = min(Self.maxHeightPoints, (try? await webView.evaluateJavaScript(
-            "Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0)"
-        ) as? Double).map { CGFloat($0) } ?? viewportHeight)
-
-        if UserDefaults.standard.bool(forKey: "pagePDF") {
-            let pdfConfig = WKPDFConfiguration()
-            pdfConfig.rect = CGRect(x: 0, y: 0, width: webView.bounds.width, height: max(height, viewportHeight))
-            let data = try await webView.pdf(configuration: pdfConfig)
-            try checkCancelled()
-            return try rasterize(data, scale: scale)
-        }
         // Late content (ads, banners) can shift the layout mid-way and misalign the tiles:
         // redo the pass when that happens.
         var attempt = 0
@@ -318,37 +297,6 @@ final class WebPageRenderer: NSObject, WKNavigationDelegate {
 
     private func checkCancelled() throws {
         if cancelled { throw CancellationError() }
-    }
-
-    private func rasterize(_ pdf: Data, scale wanted: CGFloat) throws -> (CGImage, CGFloat) {
-        guard let provider = CGDataProvider(data: pdf as CFData), let doc = CGPDFDocument(provider),
-              doc.numberOfPages > 0 else { throw Failure.empty }
-        let pages = (1...doc.numberOfPages).compactMap { doc.page(at: $0) }
-        let boxes = pages.map { $0.getBoxRect(.mediaBox) }
-        let width = boxes.map(\.width).max() ?? 0
-        let height = boxes.map(\.height).reduce(0, +)
-        guard width > 0, height > 0 else { throw Failure.empty }
-
-        let scale = min(wanted, sqrt(Self.maxPixels / (width * height)))
-        let w = Int(width * scale), h = Int(height * scale)
-        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
-                                  space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                                  bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
-        else { throw Failure.empty }
-        ctx.setFillColor(.white)
-        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
-        ctx.scaleBy(x: scale, y: scale)
-        // PDF pages stack top to bottom; CG's origin is bottom-left.
-        var top = height
-        for (page, box) in zip(pages, boxes) {
-            top -= box.height
-            ctx.saveGState()
-            ctx.translateBy(x: -box.minX, y: top - box.minY)
-            ctx.drawPDFPage(page)
-            ctx.restoreGState()
-        }
-        guard let image = ctx.makeImage() else { throw Failure.empty }
-        return (image, scale)
     }
 
     /// Loads lazy images (scrolls through once), waits for pending images and fonts, back to top.

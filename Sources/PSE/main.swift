@@ -2,7 +2,7 @@ import AppKit
 
 MainActor.assumeIsolated {
     let app = NSApplication.shared
-    if RenderSelfTest.runIfRequested() {
+    if SelfTest.runIfRequested() {
         app.setActivationPolicy(.accessory) // same as the real app: allowed to show windows
         app.run()
     }

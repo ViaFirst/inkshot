@@ -134,7 +134,7 @@ final class CaptureController {
         let alert = NSAlert()
         alert.messageText = L("Full-page capture failed")
         alert.informativeText = error.localizedDescription
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L("OK"))
         if automation { alert.addButton(withTitle: L("Open Settings")) }
         if alert.runModal() == .alertSecondButtonReturn { Permissions.openSettings(.automation) }
     }

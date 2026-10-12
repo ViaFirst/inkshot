@@ -44,9 +44,16 @@ enum ImageExport {
         return rep.representation(using: .png, properties: [:])
     }
 
-    static func copyToPasteboard(_ image: CGImage, scale: CGFloat) {
-        guard let png = pngData(image, scale: scale) else { return }
-        copyPNGData(png)
+    /// Puts the image on the pasteboard lazily: PNG/TIFF are only encoded when another app actually
+    /// pastes, so editing a tall capture (which refreshes the pasteboard on every change) costs nothing.
+    @MainActor
+    static func copyToPasteboard(_ image: CGImage, scale: CGFloat, pasteboard pb: NSPasteboard = .general) {
+        let provider = LazyImageProvider(image: image, scale: scale)
+        let item = NSPasteboardItem()
+        item.setDataProvider(provider, forTypes: [.png, .tiff])
+        pb.clearContents()
+        pb.writeObjects([item])
+        LazyImageProvider.current = provider
     }
 
     static func copyPNGData(_ png: Data) {
@@ -66,6 +73,36 @@ enum ImageExport {
         let time = DateFormatter()
         time.dateFormat = "HH.mm.ss"
         return String(format: L("Screenshot %@ at %@.png"), day.string(from: date), time.string(from: date))
+    }
+}
+
+/// Encodes the pasteboard image on demand. Kept alive by `current` until the pasteboard lets go.
+final class LazyImageProvider: NSObject, NSPasteboardItemDataProvider {
+    @MainActor static var current: LazyImageProvider?
+
+    private let image: CGImage
+    private let scale: CGFloat
+    private var png: Data?
+
+    init(image: CGImage, scale: CGFloat) {
+        self.image = image
+        self.scale = scale
+    }
+
+    func pasteboard(_ pasteboard: NSPasteboard?, item: NSPasteboardItem, provideDataForType type: NSPasteboard.PasteboardType) {
+        if png == nil { png = ImageExport.pngData(image, scale: scale) }
+        guard let png else { return }
+        if type == .png {
+            item.setData(png, forType: .png)
+        } else if type == .tiff, let tiff = NSBitmapImageRep(data: png)?.tiffRepresentation {
+            item.setData(tiff, forType: .tiff)
+        }
+    }
+
+    func pasteboardFinishedWithDataProvider(_ pasteboard: NSPasteboard) {
+        MainActor.assumeIsolated {
+            if Self.current === self { Self.current = nil }
+        }
     }
 }
 
