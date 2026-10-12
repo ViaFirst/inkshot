@@ -83,3 +83,6 @@
 "The page came out empty." = "Страница получилась пустой.";
 "The page could not be loaded: %@" = "Не удалось загрузить страницу: %@";
 "The page took too long to load." = "Страница грузилась слишком долго.";
+
+/* Eyedropper */
+"%@ copied" = "%@ скопирован";

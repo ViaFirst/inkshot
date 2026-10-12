@@ -83,3 +83,6 @@
 "The page came out empty." = "The page came out empty.";
 "The page could not be loaded: %@" = "The page could not be loaded: %@";
 "The page took too long to load." = "The page took too long to load.";
+
+/* Eyedropper */
+"%@ copied" = "%@ copied";

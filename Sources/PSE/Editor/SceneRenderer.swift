@@ -5,7 +5,9 @@ import AppKit
 /// what you see is exactly what gets copied.
 enum SceneRenderer {
     /// `deviceScale` = device pixels per image pixel; keeps shadows the same on screen and in export.
-    static func draw(base: NSImage, pixelated: () -> NSImage, annotations: [Annotation], deviceScale: CGFloat) {
+    /// `isDark(rect)` tells whether the screenshot is dark under a rect (adaptive highlighter).
+    static func draw(base: NSImage, pixelated: () -> NSImage, annotations: [Annotation], deviceScale: CGFloat,
+                     isDark: (CGRect) -> Bool) {
         let full = CGRect(origin: .zero, size: base.size)
         base.draw(in: full, from: .zero, operation: .copy, fraction: 1, respectFlipped: true, hints: nil)
 
@@ -20,11 +22,11 @@ enum SceneRenderer {
         }
 
         for a in annotations where !a.isPixelate {
-            draw(a, deviceScale: deviceScale)
+            draw(a, deviceScale: deviceScale, isDark: isDark)
         }
     }
 
-    static func draw(_ a: Annotation, deviceScale: CGFloat) {
+    static func draw(_ a: Annotation, deviceScale: CGFloat, isDark: (CGRect) -> Bool) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
         ctx.saveGState()
         defer { ctx.restoreGState() }
@@ -49,8 +51,15 @@ enum SceneRenderer {
             path.stroke()
 
         case let .highlight(r):
-            ctx.setBlendMode(.multiply)
-            a.color.withAlphaComponent(0.45).setFill()
+            // Multiply darkens: a real marker on light content, but invisible on dark UIs.
+            // On dark content use screen instead, which lightens and keeps light text readable.
+            if isDark(r) {
+                ctx.setBlendMode(.screen)
+                a.color.withAlphaComponent(0.7).setFill()
+            } else {
+                ctx.setBlendMode(.multiply)
+                a.color.withAlphaComponent(0.6).setFill()
+            }
             NSBezierPath(rect: r).fill()
 
         case .pixelate:

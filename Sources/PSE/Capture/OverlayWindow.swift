@@ -189,7 +189,7 @@ final class OverlayView: NSView {
 
         // Position (points) and colour of the centre pixel.
         let hex = pixelHex(x: cx, y: cy) ?? "—"
-        let text = "\(Int(p.x)), \(Int(p.y))   \(hex)" as NSString
+        let text = "\(Int(p.x)), \(Int(p.y))   \(hex)   C ⧉" as NSString
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium),
             .foregroundColor: NSColor.white,
@@ -332,6 +332,10 @@ final class OverlayView: NSView {
         case 35: controller?.setMode(.webPage)              // P
         case 49: controller?.setMode(mode == .area ? .window : .area) // Space
         case 3: controller?.finish(self, rect: bounds)      // F
+        case 8 where mode == .area || mode == .scroll:      // C: eyedropper
+            if let m = mouse, let hex = pixelHex(x: Int(m.x * shot.scale), y: Int(m.y * shot.scale)) {
+                controller?.pickColor(hex, screen: window?.screen)
+            }
         case 18 where mode == .webPage: controller?.setPageWidth(.window)   // 1
         case 19 where mode == .webPage: controller?.setPageWidth(.desktop)  // 2
         case 20 where mode == .webPage: controller?.setPageWidth(.mobile)   // 3

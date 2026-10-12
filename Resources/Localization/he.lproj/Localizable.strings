@@ -83,3 +83,6 @@
 "The page came out empty." = "הדף יצא ריק.";
 "The page could not be loaded: %@" = "לא ניתן היה לטעון את הדף: %@";
 "The page took too long to load." = "טעינת הדף ארכה זמן רב מדי.";
+
+/* Eyedropper */
+"%@ copied" = "%@ הועתק";

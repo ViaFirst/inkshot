@@ -69,6 +69,16 @@ final class CaptureController {
         onCancel?()
     }
 
+    /// Eyedropper: copies the colour under the pointer as #RRGGBB text.
+    func pickColor(_ hex: String, screen: NSScreen?) {
+        close()
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(hex, forType: .string)
+        Toast.show(String(format: L("%@ copied"), hex), swatch: NSColor(hex: hex), on: screen)
+        onCancel?()
+    }
+
     /// Browser window picked in web-page mode: read the tab's address and render the whole page.
     func captureWebPage(_ view: OverlayView, window: WindowInfo, localRect: CGRect) {
         let screen = view.window?.screen

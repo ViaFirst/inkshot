@@ -102,7 +102,8 @@ final class CanvasView: NSView, NSTextFieldDelegate {
         ctx.translateBy(x: d.minX, y: d.minY)
         ctx.scaleBy(x: s, y: s)
         ctx.translateBy(x: -model.crop.minX, y: -model.crop.minY)
-        SceneRenderer.draw(base: model.base, pixelated: model.pixelated, annotations: list, deviceScale: s * backing)
+        SceneRenderer.draw(base: model.base, pixelated: model.pixelated, annotations: list, deviceScale: s * backing,
+                           isDark: model.isDark)
         ctx.restoreGState()
 
         if let sel = model.selected {

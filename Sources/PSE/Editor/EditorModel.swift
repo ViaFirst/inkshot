@@ -48,6 +48,37 @@ final class EditorModel: ObservableObject {
         } + 1
     }
 
+    /// Small grayscale copy of the screenshot for cheap brightness checks.
+    private lazy var luma: (pixels: [UInt8], width: Int, height: Int, k: CGFloat) = {
+        let k = min(1, 256 / CGFloat(max(image.width, image.height)))
+        let w = max(1, Int(CGFloat(image.width) * k)), h = max(1, Int(CGFloat(image.height) * k))
+        var pixels = [UInt8](repeating: 0, count: w * h)
+        pixels.withUnsafeMutableBytes { raw in
+            guard let ctx = CGContext(data: raw.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w,
+                                      space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+            else { return }
+            ctx.interpolationQuality = .medium
+            // CG draws bottom-up; flip so row 0 is the top like the image coordinates.
+            ctx.translateBy(x: 0, y: CGFloat(h))
+            ctx.scaleBy(x: 1, y: -1)
+            ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        }
+        return (pixels, w, h, k)
+    }()
+
+    /// True when the screenshot under `rect` (image pixels) is dark on average.
+    func isDark(_ rect: CGRect) -> Bool {
+        let m = luma
+        let r = CGRect(x: rect.minX * m.k, y: rect.minY * m.k, width: rect.width * m.k, height: rect.height * m.k)
+            .integral.intersection(CGRect(x: 0, y: 0, width: m.width, height: m.height))
+        guard !r.isNull, r.width > 0, r.height > 0 else { return false }
+        var sum = 0, count = 0
+        for y in Int(r.minY)..<Int(r.maxY) {
+            for x in Int(r.minX)..<Int(r.maxX) { sum += Int(m.pixels[y * m.width + x]); count += 1 }
+        }
+        return count > 0 && sum / count < 110
+    }
+
     func pixelated() -> NSImage {
         if let cachedPixelated { return cachedPixelated }
         let ci = CIImage(cgImage: image)
@@ -155,7 +186,7 @@ final class EditorModel: ObservableObject {
 
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: true)
-        SceneRenderer.draw(base: base, pixelated: pixelated, annotations: annotations, deviceScale: 1)
+        SceneRenderer.draw(base: base, pixelated: pixelated, annotations: annotations, deviceScale: 1, isDark: isDark)
         NSGraphicsContext.restoreGraphicsState()
 
         guard let full = ctx.makeImage() else { return image }

@@ -21,6 +21,7 @@ enum RenderSelfTest {
             return true
         }
         if let i = args.firstIndex(of: "--loupe-test"), i + 1 < args.count { loupeTest(out: args[i + 1]) }
+        if let i = args.firstIndex(of: "--highlight-test"), i + 1 < args.count { highlightTest(out: args[i + 1]) }
         if args.contains("--stitch-test") { stitchTest() }
         if let i = args.firstIndex(of: "--replay"), i + 1 < args.count { replay(URL(fileURLWithPath: args[i + 1])) }
         if let i = args.firstIndex(of: "--history-test"), i + 1 < args.count {
@@ -282,6 +283,36 @@ enum RenderSelfTest {
             try? rep.representation(using: .png, properties: [:])?.write(to: url)
             print("wrote", url.path)
         }
+        exit(0)
+    }
+
+    /// `PSE --highlight-test <out.png>`: yellow highlighter on a dark UI and on a light page.
+    private static func highlightTest(out: String) {
+        let w = 1400, h = 400
+        let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        ctx.setFillColor(NSColor(srgbRed: 0.12, green: 0.12, blue: 0.13, alpha: 1).cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: 700, height: h))
+        ctx.setFillColor(NSColor.white.cgColor)
+        ctx.fill(CGRect(x: 700, y: 0, width: 700, height: h))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        let font = NSFont.systemFont(ofSize: 40, weight: .regular)
+        ("Сетка теперь видна" as NSString).draw(at: CGPoint(x: 60, y: 220), withAttributes: [.font: font, .foregroundColor: NSColor(white: 0.85, alpha: 1)])
+        ("Dark UI, light text" as NSString).draw(at: CGPoint(x: 60, y: 100), withAttributes: [.font: font, .foregroundColor: NSColor(white: 0.85, alpha: 1)])
+        ("Сетка теперь видна" as NSString).draw(at: CGPoint(x: 760, y: 220), withAttributes: [.font: font, .foregroundColor: NSColor.black])
+        ("Light page, dark text" as NSString).draw(at: CGPoint(x: 760, y: 100), withAttributes: [.font: font, .foregroundColor: NSColor.black])
+        NSGraphicsContext.restoreGraphicsState()
+
+        let model = EditorModel(image: ctx.makeImage()!, scale: 2)
+        // image coordinates are top-left: the first line sits around y = 130..180
+        model.add(Annotation(kind: .highlight(CGRect(x: 50, y: 125, width: 380, height: 60)), color: Palette.colors[2], unit: 2))
+        model.add(Annotation(kind: .highlight(CGRect(x: 750, y: 125, width: 380, height: 60)), color: Palette.colors[2], unit: 2))
+        model.add(Annotation(kind: .highlight(CGRect(x: 50, y: 245, width: 380, height: 60)), color: Palette.colors[3], unit: 2))
+        model.add(Annotation(kind: .highlight(CGRect(x: 750, y: 245, width: 380, height: 60)), color: Palette.colors[3], unit: 2))
+        try? ImageExport.pngData(model.render(), scale: 1)?.write(to: URL(fileURLWithPath: out))
+        print("wrote", out)
         exit(0)
     }
 }
