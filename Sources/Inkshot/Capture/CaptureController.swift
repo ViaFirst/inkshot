@@ -139,8 +139,9 @@ final class CaptureController {
         if alert.runModal() == .alertSecondButtonReturn { Permissions.openSettings(.automation) }
     }
 
-    /// Window or area picked in scroll mode: hand focus back to the app being captured and
-    /// start recording with auto-scroll on (the panel can pause it for manual scrolling).
+    /// Window or area picked in scroll mode: hand focus back to the app being captured and start
+    /// recording. The user scrolls by hand (owner's choice, 2026-10-14: auto-scroll was unreliable);
+    /// the panel's ▶ button still offers auto-scroll as an option.
     func beginScroll(_ view: OverlayView, rect: CGRect) {
         guard let screen = view.window?.screen else { return cancel() }
         let shot = view.shot
@@ -161,7 +162,7 @@ final class CaptureController {
             }
         }
         scrollSession = session
-        session.start(autoScroll: true)
+        session.start(autoScroll: false)
     }
 
     private func present(shots: [DisplayShot], windows: [WindowInfo], mouseScreen: NSScreen?) {

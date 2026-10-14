@@ -32,8 +32,9 @@ keyboard layout.
 
 ## Whole pages
 
-- **Scrolling capture** — click a window: Inkshot scrolls it by itself and stitches the frames; side bars
-  that don't scroll are cropped away.
+- **Scrolling capture** — click a window or drag an area, then scroll it at your own pace: Inkshot
+  records and stitches the frames (▶ on the panel scrolls for you if you want); side bars that don't
+  scroll are cropped away.
 - **Full web page** — click a browser window: Inkshot renders the tab's address in a hidden WebKit view at
   window, desktop (1440) or mobile (390) width and captures it in one piece — fixed headers once,
   cookie banners hidden.

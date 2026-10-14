@@ -13,7 +13,7 @@ window or a whole web page, and the capture is already on your clipboard.
 The editor opens right away: arrows, frames, text, numbered steps, a highlighter that stays visible on
 dark apps, blur for private details, crop. Every change updates the clipboard.
 
-- Scrolling capture: Inkshot scrolls the window for you and stitches a seamless image.
+- Scrolling capture: scroll a window at your own pace, Inkshot stitches a seamless image.
 - Full web page: capture any site at desktop or phone width in one piece.
 - Pixel loupe and eyedropper.
 - History with pinning.

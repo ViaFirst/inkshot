@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.0 — 2026-10-14
+- Scrolling capture is manual again: pick a window or area and scroll it yourself; auto-scroll stays optional (▶ on the panel).
+
 ## 0.7.0 — 2026-10-12
 - Renamed PSE → Inkshot (bundle id com.viafirst.inkshot); history and settings move over on first launch; store listings in en/ru/he.
 
