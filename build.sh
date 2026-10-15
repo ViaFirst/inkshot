@@ -32,7 +32,8 @@ if [ "${1:-}" = "install" ]; then
   for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x Inkshot >/dev/null || break; sleep 0.3; done
   mkdir -p "$HOME/Applications"
   rm -rf "$HOME/Applications/Inkshot.app"
-  cp -R "$APP" "$HOME/Applications/"
+  # Move, not copy: a second .app left in build/ shows up in Spotlight and "Open With".
+  mv "$APP" "$HOME/Applications/"
   open "$HOME/Applications/Inkshot.app"
   echo "Installed to ~/Applications/Inkshot.app"
 fi
