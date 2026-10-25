@@ -25,8 +25,8 @@ full web page · full screen. A pixel loupe shows the position and colour under 
 
 ## Mark up
 
-The capture is on the clipboard right away and opens in the editor: arrow, rectangle, text, step
-numbers, highlighter (adapts to light and dark content), blur, crop, undo. Every change updates the
+The capture is on the clipboard right away and opens in the editor: arrow, rectangle, freehand pen,
+text, step numbers, question mark, cross, highlighter (adapts to light and dark content), blur, crop, undo. Every change updates the
 clipboard; ↩ copies and closes, ⌘S saves a PNG. Tool shortcuts use key positions, so they work in any
 keyboard layout.
 

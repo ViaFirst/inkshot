@@ -15,6 +15,7 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     private var cropDraft: CGRect?
     private var moveLast: CGPoint?
     private var moved = false
+    private var penPoints: [CGPoint] = []
 
     private var textField: NSTextField?
     private var textOrigin: CGPoint?      // image px
@@ -167,6 +168,13 @@ final class CanvasView: NSView, NSTextFieldDelegate {
             }
         case .number:
             model.add(Annotation(kind: .number(p, model.nextNumber), color: model.color, unit: model.unit))
+        case .question:
+            model.add(Annotation(kind: .question(p), color: model.color, unit: model.unit))
+        case .pen:
+            dragStart = p
+            penPoints = [p]
+            draft = Annotation(kind: .pen(penPoints), color: model.color, unit: model.unit)
+            needsDisplay = true
         case .text:
             beginText(at: p, initial: "", color: model.color)
         default:
@@ -192,6 +200,17 @@ final class CanvasView: NSView, NSTextFieldDelegate {
         case .arrow:
             if shift { p = snap45(from: start, to: p) }
             kind = .arrow(start, p)
+        case .pen:
+            // Skip points closer than ~1 pt: smoother line, fewer points to store.
+            if let last = penPoints.last, last.distance(to: p) < model.unit { return }
+            penPoints.append(p)
+            kind = .pen(penPoints)
+        case .cross:
+            if shift {
+                let side = max(abs(p.x - start.x), abs(p.y - start.y))
+                p = CGPoint(x: start.x + (p.x < start.x ? -side : side), y: start.y + (p.y < start.y ? -side : side))
+            }
+            kind = .cross(CGRect(from: start, to: p))
         case .rect, .highlight, .pixelate, .crop:
             if shift {
                 let side = max(abs(p.x - start.x), abs(p.y - start.y))
@@ -224,6 +243,16 @@ final class CanvasView: NSView, NSTextFieldDelegate {
             model.commit { model.crop = c.integral }
             model.tool = .arrow
             return
+        }
+        if model.tool == .pen, let d = draft {
+            penPoints = []
+            return model.add(d) // a click leaves a dot
+        }
+        if model.tool == .cross, let start = dragStart, (draft.map { $0.bounds.width < minSize && $0.bounds.height < minSize } ?? true) {
+            // A click: an X of the default size, centred on the click.
+            let half = 12 * model.unit * 1.1
+            return model.add(Annotation(kind: .cross(CGRect(x: start.x - half, y: start.y - half, width: half * 2, height: half * 2)),
+                                        color: model.color, unit: model.unit))
         }
         guard let d = draft else { return }
         let b = d.bounds

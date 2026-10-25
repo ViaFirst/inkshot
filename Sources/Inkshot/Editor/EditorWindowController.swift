@@ -33,7 +33,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         let toolbarHeight: CGFloat = 46
         let points = CGSize(width: model.crop.width / scale, height: model.crop.height / scale)
         let size = CGSize(
-            width: min(max(points.width + 32, 820), visible.width * 0.92),
+            width: min(max(points.width + 32, 980), visible.width * 0.92), // room for the whole toolbar
             height: min(max(points.height + 32 + toolbarHeight, 360), visible.height * 0.92)
         )
         let window = NSWindow(
@@ -43,7 +43,7 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
             backing: .buffered, defer: false
         )
         window.title = "Inkshot — \(Int(model.crop.width)) × \(Int(model.crop.height))"
-        window.minSize = CGSize(width: 760, height: 320)
+        window.minSize = CGSize(width: 940, height: 320)
         window.isReleasedWhenClosed = false
 
         super.init(window: window)

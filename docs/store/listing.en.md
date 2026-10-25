@@ -10,7 +10,7 @@
 Inkshot lives in your menu bar. Press right ⌘⇧P, pick an area, a window, the full screen, a scrolling
 window or a whole web page, and the capture is already on your clipboard.
 
-The editor opens right away: arrows, frames, text, numbered steps, a highlighter that stays visible on
+The editor opens right away: arrows, frames, a freehand pen, text, numbered steps, ? and ✕ marks, a highlighter that stays visible on
 dark apps, blur for private details, crop. Every change updates the clipboard.
 
 - Scrolling capture: scroll a window at your own pace, Inkshot stitches a seamless image.

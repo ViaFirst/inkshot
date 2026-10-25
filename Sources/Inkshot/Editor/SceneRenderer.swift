@@ -65,24 +65,38 @@ enum SceneRenderer {
         case .pixelate:
             break // drawn by the scene clip
 
-        case let .number(p, n):
-            let r = a.badgeRadius
-            let circle = NSBezierPath(ovalIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2))
+        case let .pen(points):
+            shadow()
+            a.color.setStroke()
+            let path = smoothPath(points)
+            path.lineWidth = a.lineWidth
+            path.lineCapStyle = .round
+            path.lineJoinStyle = .round
+            path.stroke()
+
+        case let .question(p):
+            drawBadge(at: p, label: "?", a, ctx: ctx, shadow: shadow)
+
+        case let .cross(r):
+            let x = NSBezierPath()
+            x.move(to: CGPoint(x: r.minX, y: r.minY))
+            x.line(to: CGPoint(x: r.maxX, y: r.maxY))
+            x.move(to: CGPoint(x: r.maxX, y: r.minY))
+            x.line(to: CGPoint(x: r.minX, y: r.maxY))
+            x.lineCapStyle = .round
+            // A thin light rim keeps the X readable on any background.
             ctx.saveGState()
             shadow()
-            a.color.setFill()
-            circle.fill()
+            (a.color.isLight ? NSColor.black : NSColor.white).withAlphaComponent(0.85).setStroke()
+            x.lineWidth = a.lineWidth * 1.6 + 2 * a.unit
+            x.stroke()
             ctx.restoreGState()
-            NSColor.white.setStroke()
-            circle.lineWidth = 1.5 * a.unit
-            circle.stroke()
-            let attrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: r * 1.15, weight: .bold),
-                .foregroundColor: a.color.isLight ? NSColor.black : NSColor.white,
-            ]
-            let text = "\(n)" as NSString
-            let size = text.size(withAttributes: attrs)
-            text.draw(at: CGPoint(x: p.x - size.width / 2, y: p.y - size.height / 2), withAttributes: attrs)
+            a.color.setStroke()
+            x.lineWidth = a.lineWidth * 1.6
+            x.stroke()
+
+        case let .number(p, n):
+            drawBadge(at: p, label: "\(n)", a, ctx: ctx, shadow: shadow)
 
         case let .text(p, s):
             let text = s as NSString
@@ -94,6 +108,49 @@ enum SceneRenderer {
             ])
             text.draw(at: p, withAttributes: [.font: a.textFont, .foregroundColor: a.color])
         }
+    }
+
+    /// Filled circle with a white rim and a bold label (step numbers, "?").
+    private static func drawBadge(at p: CGPoint, label: String, _ a: Annotation, ctx: CGContext, shadow: () -> Void) {
+        let r = a.badgeRadius
+        let circle = NSBezierPath(ovalIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2))
+        ctx.saveGState()
+        shadow()
+        a.color.setFill()
+        circle.fill()
+        ctx.restoreGState()
+        NSColor.white.setStroke()
+        circle.lineWidth = 1.5 * a.unit
+        circle.stroke()
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: r * 1.15, weight: .bold),
+            .foregroundColor: a.color.isLight ? NSColor.black : NSColor.white,
+        ]
+        let text = label as NSString
+        let size = text.size(withAttributes: attrs)
+        text.draw(at: CGPoint(x: p.x - size.width / 2, y: p.y - size.height / 2), withAttributes: attrs)
+    }
+
+    /// Freehand points smoothed with quadratic curves through the midpoints.
+    static func smoothPath(_ points: [CGPoint]) -> NSBezierPath {
+        let path = NSBezierPath()
+        guard let first = points.first else { return path }
+        path.move(to: first)
+        guard points.count > 1 else {
+            path.line(to: first) // a single click: round caps draw a dot
+            return path
+        }
+        for i in 1..<points.count {
+            let c = points[i - 1], next = points[i]
+            let mid = CGPoint(x: (c.x + next.x) / 2, y: (c.y + next.y) / 2)
+            let start = path.currentPoint
+            // quadratic (start, c, mid) as a cubic
+            path.curve(to: mid,
+                       controlPoint1: CGPoint(x: start.x + 2 / 3 * (c.x - start.x), y: start.y + 2 / 3 * (c.y - start.y)),
+                       controlPoint2: CGPoint(x: mid.x + 2 / 3 * (c.x - mid.x), y: mid.y + 2 / 3 * (c.y - mid.y)))
+        }
+        path.line(to: points[points.count - 1])
+        return path
     }
 
     /// Tapered shaft + solid head, as one polygon.

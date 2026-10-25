@@ -90,3 +90,8 @@
 /* Misc */
 "OK" = "OK";
 "More actions" = "More actions";
+
+/* Pen, question mark, cross */
+"Pen" = "Pen";
+"Question Mark" = "Question Mark";
+"Cross" = "Cross";

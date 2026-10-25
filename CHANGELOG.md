@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.0 — 2026-10-25
+- Editor: freehand pen (P), question mark (Q) and cross (X) — click for a default X, drag to cross out an area.
+
 ## 0.8.0 — 2026-10-14
 - Scrolling capture is manual again: pick a window or area and scroll it yourself; auto-scroll stays optional (▶ on the panel).
 

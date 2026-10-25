@@ -66,6 +66,11 @@ enum SelfTest {
         model.add(Annotation(kind: .number(CGPoint(x: 820, y: 400), 2), color: c[2], unit: u))
         model.add(Annotation(kind: .text(CGPoint(x: 460, y: 320), "Привет, Inkshot! ✓"), color: c[0], unit: u))
         model.add(Annotation(kind: .text(CGPoint(x: 460, y: 420), "White text"), color: c[7], unit: u))
+        let wave = (0...40).map { i in CGPoint(x: 120 + CGFloat(i) * 7, y: 470 + sin(CGFloat(i) / 4) * 40) }
+        model.add(Annotation(kind: .pen(wave), color: c[3], unit: u))
+        model.add(Annotation(kind: .question(CGPoint(x: 1000, y: 160)), color: c[4], unit: u))
+        model.add(Annotation(kind: .cross(CGRect(x: 960, y: 230, width: 120, height: 90)), color: c[0], unit: u))
+        model.add(Annotation(kind: .cross(CGRect(x: 1080, y: 380, width: 40, height: 40)), color: c[7], unit: u))
         model.commit { model.crop = CGRect(x: 50, y: 50, width: 1100, height: 620) }
         let data = ImageExport.pngData(model.render(), scale: 2)!
         try? data.write(to: URL(fileURLWithPath: args[i + 1]))

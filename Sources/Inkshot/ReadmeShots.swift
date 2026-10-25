@@ -42,12 +42,15 @@ enum ReadmeShots {
         let item = store.add(image: shot, scale: 2)
         let c = Palette.colors, u: CGFloat = 2 * StrokeSize.m.rawValue
         let edits = EditState(annotations: [
+            Annotation(kind: .pen((0...60).map { i in
+                CGPoint(x: 300 + CGFloat(i) * 27, y: 512 + sin(CGFloat(i) / 2.2) * 12) }), color: c[3], unit: u),
             Annotation(kind: .rect(CGRect(x: 690, y: 540, width: 880, height: 300)), color: c[0], unit: u),
             Annotation(kind: .arrow(CGPoint(x: 1960, y: 1220), CGPoint(x: 1600, y: 860)), color: c[0], unit: u),
             Annotation(kind: .number(CGPoint(x: 690, y: 540), 1), color: c[0], unit: u),
             Annotation(kind: .highlight(CGRect(x: 480, y: 918, width: 1320, height: 76)), color: c[2], unit: u),
             Annotation(kind: .number(CGPoint(x: 480, y: 918), 2), color: c[1], unit: u),
             Annotation(kind: .text(CGPoint(x: 1690, y: 1260), "New headline"), color: c[7], unit: u),
+            Annotation(kind: .question(CGPoint(x: 1600, y: 1062)), color: c[4], unit: u),
         ], crop: CGRect(x: 0, y: 0, width: shot.width, height: shot.height))
         let editor = EditorWindowController(item: item, image: shot, edits: edits, history: store, screen: nil)
         let editorImage = try await capture(editor.window!, size: CGSize(width: 1180, height: 790))

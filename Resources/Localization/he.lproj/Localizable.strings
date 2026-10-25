@@ -90,3 +90,8 @@
 /* Misc */
 "OK" = "אישור";
 "More actions" = "פעולות נוספות";
+
+/* Pen, question mark, cross */
+"Pen" = "עט";
+"Question Mark" = "סימן שאלה";
+"Cross" = "איקס";

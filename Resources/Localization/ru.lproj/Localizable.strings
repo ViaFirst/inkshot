@@ -90,3 +90,8 @@
 /* Misc */
 "OK" = "OK";
 "More actions" = "Ещё действия";
+
+/* Pen, question mark, cross */
+"Pen" = "Карандаш";
+"Question Mark" = "Знак вопроса";
+"Cross" = "Крестик";
