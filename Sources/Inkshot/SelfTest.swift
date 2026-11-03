@@ -384,6 +384,7 @@ enum SelfTest {
                             bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
         ctx.setFillColor(NSColor.darkGray.cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: 1600, height: 1000))
+        UserDefaults.standard.removeObject(forKey: "textPoints") // start from the default size
         let store = HistoryStore(root: FileManager.default.temporaryDirectory
             .appendingPathComponent("inkshot-selftest-\(UUID().uuidString)"))
         let image = ctx.makeImage()!
@@ -451,8 +452,43 @@ enum SelfTest {
         canvas.debugType("Line one\nLine two")
         canvas.debugCommitText()
         let multi = model.annotations.last
-        let oneLine = Annotation(kind: .text(.zero, "Line one"), color: .white, unit: model.unit).bounds.height
+        var single = Annotation(kind: .text(.zero, "Line one"), color: .white, unit: model.unit)
+        single.textSize = multi?.textSize
+        let oneLine = single.bounds.height
         check(text(multi)?.1 == "Line one\nLine two" && (multi?.bounds.height ?? 0) > oneLine * 1.6, "multi-line text")
+
+        // Font size
+        model.textPoints = 48
+        mouse(.leftMouseDown, at: CGPoint(x: 200, y: 700)); mouse(.leftMouseUp, at: CGPoint(x: 200, y: 700))
+        canvas.debugType("Big")
+        model.textPoints = 64                       // changed while typing
+        canvas.debugCommitText()
+        let big = model.annotations.last!
+        check(big.textSize == 64 * 2, "size changed while typing applies (\(big.textSize ?? 0) px)")
+        check(model.selectedID == big.id && model.textPoints == 64, "toolbar shows the new text's size")
+        model.textPoints = 20
+        check(model.annotations.last?.textSize == 40, "size applies to the selected text")
+        model.undo()
+        check(model.annotations.last?.textSize == 128, "one undo restores the size")
+        let old = Annotation(kind: .text(CGPoint(x: 1200, y: 800), "Old"), color: .white, unit: model.unit) // no textSize
+        model.add(old)
+        let undoBefore = model.canUndo, countBefore = model.annotations.count
+        model.selectedID = old.id
+        check(model.textPoints == 29 && model.canUndo == undoBefore && model.annotations.count == countBefore
+              && model.annotations.last?.textSize == nil, "selecting an old text shows its size without restyling it")
+        model.selectedID = nil
+        model.textPoints = 28; model.stepTextSize(1)
+        check(model.textPoints == 32, "⌘+ steps 28 → 32")
+        model.textPoints = 30; model.stepTextSize(-1)
+        check(model.textPoints == 28, "⌘− from an off-list size goes to the next smaller (30 → 28)")
+        model.textPoints = 96; model.stepTextSize(1)
+        check(model.textPoints == 96, "⌘+ stops at the largest size")
+        let json = try! JSONEncoder().encode(big)
+        check((try? JSONDecoder().decode(Annotation.self, from: json))?.textSize == big.textSize, "text size is saved")
+        let legacy = try! JSONEncoder().encode(Annotation(kind: .text(.zero, "old"), color: .white, unit: 3.2))
+        check((try? JSONDecoder().decode(Annotation.self, from: legacy)).map { $0.textSize == nil && $0.fontSize == 18 * 3.2 } ?? false,
+              "texts saved before font sizes still load")
+        UserDefaults.standard.removeObject(forKey: "textPoints")
         window.close()
     }
 

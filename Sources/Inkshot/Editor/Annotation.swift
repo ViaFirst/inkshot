@@ -111,9 +111,12 @@ struct Annotation: Identifiable {
     var color: NSColor
     /// Image pixels per design point: capture scale × stroke size.
     var unit: CGFloat
+    /// Text marks: font size in image pixels, chosen in the toolbar. Older marks have none and
+    /// follow the stroke size.
+    var textSize: CGFloat?
 
     var lineWidth: CGFloat { 3 * unit }
-    var fontSize: CGFloat { 18 * unit }
+    var fontSize: CGFloat { textSize ?? 18 * unit }
     var badgeRadius: CGFloat { 12 * unit }
 
     var isText: Bool {
@@ -193,13 +196,14 @@ struct Annotation: Identifiable {
 
 // Stored in the history as JSON; the colour is kept as sRGB components.
 extension Annotation: Codable {
-    private enum CodingKeys: String, CodingKey { case id, kind, color, unit }
+    private enum CodingKeys: String, CodingKey { case id, kind, color, unit, textSize }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
         kind = try c.decode(Kind.self, forKey: .kind)
         unit = try c.decode(CGFloat.self, forKey: .unit)
+        textSize = try c.decodeIfPresent(CGFloat.self, forKey: .textSize)
         let rgba = try c.decode([CGFloat].self, forKey: .color)
         color = rgba.count == 4
             ? NSColor(srgbRed: rgba[0], green: rgba[1], blue: rgba[2], alpha: rgba[3])
@@ -211,6 +215,7 @@ extension Annotation: Codable {
         try c.encode(id, forKey: .id)
         try c.encode(kind, forKey: .kind)
         try c.encode(unit, forKey: .unit)
+        try c.encodeIfPresent(textSize, forKey: .textSize)
         let rgb = color.usingColorSpace(.sRGB) ?? Palette.colors[0]
         try c.encode([rgb.redComponent, rgb.greenComponent, rgb.blueComponent, rgb.alphaComponent], forKey: .color)
     }

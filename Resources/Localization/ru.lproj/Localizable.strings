@@ -95,3 +95,12 @@
 "Pen" = "Карандаш";
 "Question Mark" = "Знак вопроса";
 "Cross" = "Крестик";
+
+/* Text size */
+"Text Size" = "Размер текста";
+"%d pt" = "%d pt";
+"Smaller Text (⌘−)" = "Меньше (⌘−)";
+"Bigger Text (⌘+)" = "Больше (⌘+)";
+"Format" = "Формат";
+"Bigger Text" = "Крупнее";
+"Smaller Text" = "Мельче";

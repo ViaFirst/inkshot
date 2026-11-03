@@ -95,3 +95,12 @@
 "Pen" = "Pen";
 "Question Mark" = "Question Mark";
 "Cross" = "Cross";
+
+/* Text size */
+"Text Size" = "Text Size";
+"%d pt" = "%d pt";
+"Smaller Text (⌘−)" = "Smaller Text (⌘−)";
+"Bigger Text (⌘+)" = "Bigger Text (⌘+)";
+"Format" = "Format";
+"Bigger Text" = "Bigger Text";
+"Smaller Text" = "Smaller Text";

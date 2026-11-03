@@ -28,6 +28,11 @@ enum MainMenu {
         edit.addItem(withTitle: L("Select All"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         add(edit, title: L("Edit"), to: main)
 
+        let format = NSMenu(title: L("Format"))
+        format.addItem(withTitle: L("Bigger Text"), action: #selector(CanvasView.biggerText(_:)), keyEquivalent: "+")
+        format.addItem(withTitle: L("Smaller Text"), action: #selector(CanvasView.smallerText(_:)), keyEquivalent: "-")
+        add(format, title: L("Format"), to: main)
+
         return main
     }
 

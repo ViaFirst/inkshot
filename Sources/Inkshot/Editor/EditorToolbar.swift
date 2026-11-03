@@ -46,20 +46,10 @@ struct EditorToolbar: View {
 
             Divider().frame(height: 22)
 
-            HStack(spacing: 2) {
-                ForEach(StrokeSize.allCases, id: \.self) { s in
-                    Button {
-                        model.size = s
-                        onInteract()
-                    } label: {
-                        Circle()
-                            .frame(width: 4 + s.rawValue * 3, height: 4 + s.rawValue * 3)
-                            .frame(width: 26, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(ChipStyle(selected: model.size == s))
-                    .help(L("Stroke Size"))
-                }
+            if model.tool == .text || model.selected?.isText == true {
+                textSizeControl
+            } else {
+                strokeSizeControl
             }
 
             Spacer(minLength: 8)
@@ -79,6 +69,50 @@ struct EditorToolbar: View {
         .padding(.horizontal, 12)
         .frame(height: 46)
         .background(.bar)
+    }
+
+    private var strokeSizeControl: some View {
+        HStack(spacing: 2) {
+            ForEach(StrokeSize.allCases, id: \.self) { s in
+                Button {
+                    model.size = s
+                    onInteract()
+                } label: {
+                    Circle()
+                        .frame(width: 4 + s.rawValue * 3, height: 4 + s.rawValue * 3)
+                        .frame(width: 26, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(ChipStyle(selected: model.size == s))
+                .help(L("Stroke Size"))
+            }
+        }
+    }
+
+    /// A− | 28 pt ▾ | A+ : font size for text marks.
+    private var textSizeControl: some View {
+        HStack(spacing: 2) {
+            Button { model.stepTextSize(-1); onInteract() } label: {
+                Text("A").font(.system(size: 10, weight: .semibold)).frame(width: 24, height: 28).contentShape(Rectangle())
+            }
+            .buttonStyle(ChipStyle(selected: false))
+            .help(L("Smaller Text (⌘−)"))
+            Menu {
+                ForEach(EditorModel.textSizes, id: \.self) { n in
+                    Button(String(format: L("%d pt"), Int(n))) { model.textPoints = n; onInteract() }
+                }
+            } label: {
+                Text(String(format: L("%d pt"), Int(model.textPoints))).monospacedDigit()
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help(L("Text Size"))
+            Button { model.stepTextSize(1); onInteract() } label: {
+                Text("A").font(.system(size: 17, weight: .semibold)).frame(width: 24, height: 28).contentShape(Rectangle())
+            }
+            .buttonStyle(ChipStyle(selected: false))
+            .help(L("Bigger Text (⌘+)"))
+        }
     }
 }
 

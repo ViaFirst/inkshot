@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.0 — 2026-11-03
+- Text font size: A− / 12–96 pt / A+ in the toolbar while the Text tool or a text is active, ⌘+ / ⌘− (Format menu); applies to the text being typed, the selected text and new texts; remembered.
+
 ## 0.10.0 — 2026-11-03
 - Text: typed in its final look, drag it with any tool (except pen/crop), double-click edits in place (one undo step), ⌥↩/⇧↩ new line, a click elsewhere starts the next text, toolbar colour/size apply while typing.
 

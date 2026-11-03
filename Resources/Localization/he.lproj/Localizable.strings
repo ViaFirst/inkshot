@@ -95,3 +95,12 @@
 "Pen" = "עט";
 "Question Mark" = "סימן שאלה";
 "Cross" = "איקס";
+
+/* Text size */
+"Text Size" = "גודל טקסט";
+"%d pt" = "%d pt";
+"Smaller Text (⌘−)" = "קטן יותר (⌘−)";
+"Bigger Text (⌘+)" = "גדול יותר (⌘+)";
+"Format" = "עיצוב";
+"Bigger Text" = "טקסט גדול יותר";
+"Smaller Text" = "טקסט קטן יותר";

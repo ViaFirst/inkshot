@@ -11,10 +11,57 @@ final class EditorModel: ObservableObject {
 
     @Published var annotations: [Annotation] = []
     @Published var crop: CGRect
-    @Published var selectedID: UUID?
+    @Published var selectedID: UUID? { didSet { showSelectedTextSize() } }
     @Published var tool: Tool = .arrow { didSet { if tool != .select { selectedID = nil } } }
     @Published var color: NSColor = Palette.colors[0] { didSet { restyleSelection() } }
     @Published var size: StrokeSize = .m { didSet { restyleSelection() } }
+    /// Font size for text marks, in points. Applies to the selected text and to new ones; remembered.
+    @Published var textPoints: CGFloat = EditorModel.savedTextPoints {
+        didSet {
+            guard !showingSelection else { return }
+            UserDefaults.standard.set(Double(textPoints), forKey: Self.textPointsKey)
+            resizeSelectedText()
+        }
+    }
+
+    static let textSizes: [CGFloat] = [12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64, 80, 96]
+    private static let textPointsKey = "textPoints"
+    private static var savedTextPoints: CGFloat {
+        let v = UserDefaults.standard.double(forKey: textPointsKey)
+        return v > 0 ? CGFloat(v) : 28
+    }
+    private var showingSelection = false
+
+    /// Font size of new text in image pixels.
+    var textPixels: CGFloat { textPoints * scale }
+
+    /// One step up or down the size list (⌘+ / ⌘−).
+    func stepTextSize(_ direction: Int) {
+        let sizes = Self.textSizes
+        let i = sizes.firstIndex { $0 >= textPoints - 0.5 } ?? sizes.count - 1
+        let current = sizes[i] == textPoints ? i : (direction > 0 ? i - 1 : i)
+        textPoints = sizes[max(0, min(sizes.count - 1, current + direction))]
+    }
+
+    /// Shows a size in the toolbar without restyling anything (text being edited).
+    func showTextSize(_ pixels: CGFloat) {
+        showingSelection = true
+        textPoints = (pixels / scale).rounded()
+        showingSelection = false
+    }
+
+    /// The toolbar shows the selected text's own size (without restyling it).
+    private func showSelectedTextSize() {
+        guard let a = selected, a.isText else { return }
+        showingSelection = true
+        textPoints = (a.fontSize / scale).rounded()
+        showingSelection = false
+    }
+
+    private func resizeSelectedText() {
+        guard let id = selectedID, let i = annotations.firstIndex(where: { $0.id == id }), annotations[i].isText else { return }
+        commit { annotations[i].textSize = textPixels }
+    }
     @Published private(set) var canUndo = false
     @Published private(set) var canRedo = false
 

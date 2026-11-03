@@ -23,8 +23,9 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     private var editingID: UUID?
     private var textColor: NSColor = .white
     private var textUnit: CGFloat = 1
-    /// Colour/size when typing started: a change from the toolbar restyles the text being typed.
-    private var textStyleBaseline: (NSColor, StrokeSize)?
+    private var textFontPx: CGFloat = 36
+    /// Colour/font size when typing started: a change from the toolbar restyles the text being typed.
+    private var textStyleBaseline: (NSColor, CGFloat)?
 
     init(model: EditorModel) {
         self.model = model
@@ -34,14 +35,7 @@ final class CanvasView: NSView, NSTextFieldDelegate {
             .sink { [weak self] _ in
                 guard let self else { return }
                 (self.enclosingScrollView as? EditorScrollView)?.updateDocumentSize()
-                if self.textField != nil, let (color, size) = self.textStyleBaseline,
-                   color != self.model.color || size != self.model.size {
-                    self.textColor = self.model.color
-                    self.textUnit = self.model.unit
-                    self.textStyleBaseline = (self.model.color, self.model.size)
-                    self.styleFieldEditor()
-                    self.layoutTextField()
-                }
+                self.syncTypingStyle()
                 self.needsDisplay = true
                 self.window?.invalidateCursorRects(for: self)
             }
@@ -330,21 +324,23 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     private var textDraft: Annotation? {
         guard let field = textField, let origin = textOrigin, !field.stringValue.isEmpty else { return nil }
         var a = Annotation(kind: .text(origin, field.stringValue), color: textColor, unit: textUnit)
+        a.textSize = textFontPx
         if let editingID { a.id = editingID }
         return a
     }
 
     private func beginText(at p: CGPoint) {
-        startTextField(origin: p, initial: "", color: model.color, unit: model.unit, editing: nil)
+        startTextField(origin: p, initial: "", color: model.color, unit: model.unit, fontPx: model.textPixels, editing: nil)
     }
 
     private func beginText(editing a: Annotation) {
         guard case let .text(origin, string) = a.kind else { return }
         model.selectedID = nil
-        startTextField(origin: origin, initial: string, color: a.color, unit: a.unit, editing: a.id)
+        model.showTextSize(a.fontSize)
+        startTextField(origin: origin, initial: string, color: a.color, unit: a.unit, fontPx: a.fontSize, editing: a.id)
     }
 
-    private func startTextField(origin: CGPoint, initial: String, color: NSColor, unit: CGFloat, editing: UUID?) {
+    private func startTextField(origin: CGPoint, initial: String, color: NSColor, unit: CGFloat, fontPx: CGFloat, editing: UUID?) {
         let field = NSTextField(string: initial)
         field.isBordered = false
         field.drawsBackground = false
@@ -359,14 +355,26 @@ final class CanvasView: NSView, NSTextFieldDelegate {
         textOrigin = origin
         textColor = color
         textUnit = unit
+        textFontPx = fontPx
         editingID = editing
-        textStyleBaseline = (model.color, model.size)
+        textStyleBaseline = (model.color, model.textPoints)
         addSubview(field)
         layoutTextField()
         window?.makeFirstResponder(field)
         styleFieldEditor()
         (field.currentEditor() as? NSTextView)?.selectedRange = NSRange(location: initial.utf16.count, length: 0)
         needsDisplay = true
+    }
+
+    /// A colour or font size picked in the toolbar while typing restyles the text being typed.
+    private func syncTypingStyle() {
+        guard textField != nil, let (color, points) = textStyleBaseline,
+              color != model.color || points != model.textPoints else { return }
+        textColor = model.color
+        textFontPx = model.textPixels
+        textStyleBaseline = (model.color, model.textPoints)
+        styleFieldEditor()
+        layoutTextField()
     }
 
     /// The field editor draws its own text in the control text colour; make it invisible so only the
@@ -381,8 +389,7 @@ final class CanvasView: NSView, NSTextFieldDelegate {
 
     private func layoutTextField() {
         guard let field = textField, let origin = textOrigin else { return }
-        let fontSize = 18 * textUnit
-        field.font = .systemFont(ofSize: fontSize * viewScale, weight: .bold)
+        field.font = .systemFont(ofSize: textFontPx * viewScale, weight: .bold)
         let text = field.stringValue.isEmpty ? " " : field.stringValue
         let size = (text as NSString).size(withAttributes: [.font: field.font!])
         let v = toView(origin)
@@ -418,19 +425,24 @@ final class CanvasView: NSView, NSTextFieldDelegate {
 
     private func commitText() {
         guard let field = textField, let origin = textOrigin else { return }
+        syncTypingStyle() // a toolbar change right before Return may not have arrived yet
         let text = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        let editing = editingID, color = textColor, unit = textUnit
+        let editing = editingID, color = textColor, unit = textUnit, fontPx = textFontPx
         cancelText()
         if let editing, let i = model.annotations.firstIndex(where: { $0.id == editing }) {
             // One undo step: change the text in place, or remove it when emptied.
             if text.isEmpty {
                 model.commit { model.annotations.remove(at: i) }
             } else {
-                model.commit { model.annotations[i].kind = .text(origin, text) }
+                model.commit {
+                    model.annotations[i].kind = .text(origin, text)
+                    model.annotations[i].textSize = fontPx
+                }
                 model.selectedID = editing
             }
         } else if !text.isEmpty {
-            let a = Annotation(kind: .text(origin, text), color: color, unit: unit)
+            var a = Annotation(kind: .text(origin, text), color: color, unit: unit)
+            a.textSize = fontPx
             model.add(a)
             model.selectedID = a.id
         }
@@ -487,6 +499,9 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     @objc func undo(_ sender: Any?) { model.undo() }
     @objc func redo(_ sender: Any?) { model.redo() }
     @objc func delete(_ sender: Any?) { model.deleteSelected() }
+    /// ⌘+ / ⌘− (Format menu): the selected text, the text being typed and new texts.
+    @objc func biggerText(_ sender: Any?) { model.stepTextSize(1) }
+    @objc func smallerText(_ sender: Any?) { model.stepTextSize(-1) }
 }
 
 /// Scrolls the canvas vertically when the image is taller than the window (scrolling captures).

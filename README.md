@@ -27,7 +27,7 @@ full web page · full screen. A pixel loupe shows the position and colour under 
 
 The capture is on the clipboard right away and opens in the editor: arrow, rectangle, freehand pen,
 text, step numbers, question mark, cross, highlighter (adapts to light and dark content), blur, crop, undo. Text is typed in its final look
-(⌥↩ for a new line), can be dragged with any tool and edited with a double-click. Every change updates the
+(⌥↩ for a new line, font size 12–96 pt in the toolbar or ⌘+ / ⌘−), can be dragged with any tool and edited with a double-click. Every change updates the
 clipboard; ↩ copies and closes, ⌘S saves a PNG. Tool shortcuts use key positions, so they work in any
 keyboard layout.
 
