@@ -27,6 +27,10 @@ enum SelfTest {
                             out: args.dropFirst(i + 3).first ?? "docs/images")
             return true
         }
+        if let i = args.firstIndex(of: "--typing-render"), i + 1 < args.count {
+            typingRender(out: args[i + 1])
+            return true
+        }
         if args.contains("--self-test") {
             // All logic tests; throwaway folders and pasteboards only, never the user's data.
             stitchTest()
@@ -35,6 +39,7 @@ enum SelfTest {
             try? FileManager.default.removeItem(at: dir)
             pasteboardTest()
             brightnessTest()
+            textEditingTest()
             print("ALL PASS")
             exit(0)
         }
@@ -367,5 +372,119 @@ enum SelfTest {
         let model = EditorModel(image: ctx.makeImage()!, scale: 2)
         check(model.isDark(CGRect(x: 50, y: 50, width: 300, height: 100)), "dark at the top (image coordinates)")
         check(!model.isDark(CGRect(x: 50, y: 250, width: 300, height: 100)), "light at the bottom")
+    }
+
+    /// Text marks through a real editor window and synthetic mouse events: type, grab-move with
+    /// another tool active, edit in place with a double-click (one undo step), multi-line, pen
+    /// draws over text instead of grabbing it.
+    private static func textEditingTest() {
+        func check(_ ok: Bool, _ msg: String) { print(ok ? "PASS" : "FAIL", msg); if !ok { exit(1) } }
+        let ctx = CGContext(data: nil, width: 1600, height: 1000, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        ctx.setFillColor(NSColor.darkGray.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: 1600, height: 1000))
+        let store = HistoryStore(root: FileManager.default.temporaryDirectory
+            .appendingPathComponent("inkshot-selftest-\(UUID().uuidString)"))
+        let image = ctx.makeImage()!
+        let item = store.add(image: image, scale: 2)
+        let editor = EditorWindowController(item: item, image: image, edits: nil, history: store, screen: nil)
+        guard let window = editor.window else { return check(false, "editor window") }
+        window.contentView?.layoutSubtreeIfNeeded()
+        let canvas = editor.debugCanvas, model = editor.debugModel
+
+        func mouse(_ type: NSEvent.EventType, at imagePoint: CGPoint, clicks: Int = 1) {
+            let inWindow = canvas.convert(canvas.debugViewPoint(imagePoint), to: nil)
+            let e = NSEvent.mouseEvent(with: type, location: inWindow, modifierFlags: [], timestamp: 0,
+                                       windowNumber: window.windowNumber, context: nil, eventNumber: 0,
+                                       clickCount: clicks, pressure: 1)!
+            switch type {
+            case .leftMouseDown: canvas.mouseDown(with: e)
+            case .leftMouseDragged: canvas.mouseDragged(with: e)
+            default: canvas.mouseUp(with: e)
+            }
+        }
+        func text(_ a: Annotation?) -> (CGPoint, String)? {
+            if let a, case let .text(p, s) = a.kind { return (p, s) }
+            return nil
+        }
+
+        model.tool = .text
+        mouse(.leftMouseDown, at: CGPoint(x: 300, y: 300)); mouse(.leftMouseUp, at: CGPoint(x: 300, y: 300))
+        check(canvas.debugIsEditingText, "click with Text starts typing")
+        canvas.debugType("Hello")
+        canvas.debugCommitText()
+        let id = model.annotations.first?.id
+        check(model.annotations.count == 1 && text(model.annotations.first)?.1 == "Hello", "text added")
+        check(model.selectedID == id, "new text stays selected")
+
+        model.tool = .arrow
+        let inside = CGPoint(x: 320, y: 315)
+        mouse(.leftMouseDown, at: inside)
+        mouse(.leftMouseDragged, at: CGPoint(x: 420, y: 365))
+        mouse(.leftMouseUp, at: CGPoint(x: 420, y: 365))
+        let moved = text(model.annotations.first)
+        check(model.annotations.count == 1, "dragging a text with the Arrow tool draws no arrow")
+        check(moved.map { abs($0.0.x - 400) < 2 && abs($0.0.y - 350) < 2 } ?? false,
+              "text moved by the drag (origin \(moved.map { "\($0.0)" } ?? "?"))")
+
+        mouse(.leftMouseDown, at: CGPoint(x: 420, y: 365), clicks: 2)
+        mouse(.leftMouseUp, at: CGPoint(x: 420, y: 365), clicks: 2)
+        check(canvas.debugIsEditingText, "double-click edits the text")
+        canvas.debugType("Hello world")
+        canvas.debugCommitText()
+        check(model.annotations.count == 1 && model.annotations.first?.id == id
+              && text(model.annotations.first)?.1 == "Hello world", "edited in place, same mark")
+        model.undo()
+        check(text(model.annotations.first)?.1 == "Hello", "one undo restores the old text")
+        model.undo()
+        check(text(model.annotations.first).map { abs($0.0.x - 300) < 2 } ?? false, "next undo restores the position")
+
+        model.tool = .pen
+        mouse(.leftMouseDown, at: CGPoint(x: 310, y: 310))
+        mouse(.leftMouseDragged, at: CGPoint(x: 360, y: 330))
+        mouse(.leftMouseUp, at: CGPoint(x: 360, y: 330))
+        check(model.annotations.count == 2 && text(model.annotations.first)?.0.x == 300, "pen draws over text, doesn't grab it")
+
+        model.tool = .text
+        mouse(.leftMouseDown, at: CGPoint(x: 900, y: 600)); mouse(.leftMouseUp, at: CGPoint(x: 900, y: 600))
+        canvas.debugType("Line one\nLine two")
+        canvas.debugCommitText()
+        let multi = model.annotations.last
+        let oneLine = Annotation(kind: .text(.zero, "Line one"), color: .white, unit: model.unit).bounds.height
+        check(text(multi)?.1 == "Line one\nLine two" && (multi?.bounds.height ?? 0) > oneLine * 1.6, "multi-line text")
+        window.close()
+    }
+
+    /// `Inkshot --typing-render <out.png>`: the editor in the middle of typing a text (live draft + caret).
+    private static func typingRender(out: String) {
+        let ctx = CGContext(data: nil, width: 1600, height: 900, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)!
+        ctx.setFillColor(NSColor(srgbRed: 0.93, green: 0.94, blue: 0.97, alpha: 1).cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: 1600, height: 900))
+        ctx.setFillColor(NSColor(srgbRed: 0.1, green: 0.1, blue: 0.14, alpha: 1).cgColor)
+        ctx.fill(CGRect(x: 800, y: 0, width: 800, height: 900))
+        let store = HistoryStore(root: FileManager.default.temporaryDirectory
+            .appendingPathComponent("inkshot-selftest-\(UUID().uuidString)"))
+        let image = ctx.makeImage()!
+        let editor = EditorWindowController(item: store.add(image: image, scale: 2), image: image, edits: nil,
+                                            history: store, screen: nil)
+        let model = editor.debugModel, canvas = editor.debugCanvas
+        model.add(Annotation(kind: .text(CGPoint(x: 120, y: 200), "Done text"), color: Palette.colors[0], unit: model.unit))
+        _ = Task { @MainActor in
+            let window = editor.window!
+            window.contentView?.layoutSubtreeIfNeeded()
+            model.tool = .text
+            let p = canvas.convert(canvas.debugViewPoint(CGPoint(x: 900, y: 420)), to: nil)
+            let down = NSEvent.mouseEvent(with: .leftMouseDown, location: p, modifierFlags: [], timestamp: 0,
+                                          windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+            canvas.mouseDown(with: down)
+            canvas.debugType("Typing on dark\nsecond line")
+            let img = try await ReadmeShots.capture(window, size: CGSize(width: 1000, height: 640))
+            try? NSBitmapImageRep(cgImage: img).representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: out))
+            print("wrote", out)
+            exit(0)
+        }
     }
 }

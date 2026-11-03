@@ -116,6 +116,11 @@ struct Annotation: Identifiable {
     var fontSize: CGFloat { 18 * unit }
     var badgeRadius: CGFloat { 12 * unit }
 
+    var isText: Bool {
+        if case .text = kind { return true }
+        return false
+    }
+
     var isPixelate: Bool {
         if case .pixelate = kind { return true }
         return false

@@ -94,7 +94,7 @@ enum ReadmeShots {
 
     /// Shows the window below the desktop (unseen), lets it render, then draws its content
     /// view's layer tree at 2x. SwiftUI and visual-effect views only paint fully this way.
-    private static func capture(_ window: NSWindow, size: CGSize) async throws -> CGImage {
+    static func capture(_ window: NSWindow, size: CGSize) async throws -> CGImage {
         let origin = NSScreen.screens.first?.frame.origin ?? .zero
         window.setContentSize(size)
         window.setFrameOrigin(origin)

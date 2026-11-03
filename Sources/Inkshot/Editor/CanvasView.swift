@@ -19,6 +19,12 @@ final class CanvasView: NSView, NSTextFieldDelegate {
 
     private var textField: NSTextField?
     private var textOrigin: CGPoint?      // image px
+    /// The text annotation being edited in place (hidden while its live draft is shown).
+    private var editingID: UUID?
+    private var textColor: NSColor = .white
+    private var textUnit: CGFloat = 1
+    /// Colour/size when typing started: a change from the toolbar restyles the text being typed.
+    private var textStyleBaseline: (NSColor, StrokeSize)?
 
     init(model: EditorModel) {
         self.model = model
@@ -28,6 +34,14 @@ final class CanvasView: NSView, NSTextFieldDelegate {
             .sink { [weak self] _ in
                 guard let self else { return }
                 (self.enclosingScrollView as? EditorScrollView)?.updateDocumentSize()
+                if self.textField != nil, let (color, size) = self.textStyleBaseline,
+                   color != self.model.color || size != self.model.size {
+                    self.textColor = self.model.color
+                    self.textUnit = self.model.unit
+                    self.textStyleBaseline = (self.model.color, self.model.size)
+                    self.styleFieldEditor()
+                    self.layoutTextField()
+                }
                 self.needsDisplay = true
                 self.window?.invalidateCursorRects(for: self)
             }
@@ -94,7 +108,8 @@ final class CanvasView: NSView, NSTextFieldDelegate {
 
         let d = displayRect, s = viewScale
         let backing = window?.backingScaleFactor ?? 2
-        var list = model.annotations
+        var list = model.annotations.filter { $0.id != editingID }
+        if let textDraft { list.append(textDraft) }
         if let draft { list.append(draft) }
 
         ctx.saveGState()
@@ -146,26 +161,25 @@ final class CanvasView: NSView, NSTextFieldDelegate {
         let v = convert(event.locationInWindow, from: nil)
         let p = toImage(v)
 
-        if textField != nil {
-            commitText()
-            if model.tool == .text { return }
+        // A click outside the text being typed finishes it; the same click then acts normally
+        // (e.g. starts the next text right away).
+        if textField != nil { commitText() }
+
+        let hit = model.annotations.last(where: { $0.hitTest(p) })
+        if let hit, event.clickCount == 2, hit.isText, model.tool != .pen {
+            return beginText(editing: hit)
+        }
+        if let hit, canGrab(hit) {
+            model.selectedID = hit.id
+            model.beginLiveChange()
+            moveLast = p
+            moved = false
+            return
         }
 
         switch model.tool {
         case .select:
-            if let hit = model.annotations.last(where: { $0.hitTest(p) }) {
-                if event.clickCount == 2, case let .text(origin, string) = hit.kind {
-                    model.commit { model.annotations.removeAll { $0.id == hit.id } }
-                    beginText(at: origin, initial: string, color: hit.color)
-                    return
-                }
-                model.selectedID = hit.id
-                model.beginLiveChange()
-                moveLast = p
-                moved = false
-            } else {
-                model.selectedID = nil
-            }
+            model.selectedID = nil
         case .number:
             model.add(Annotation(kind: .number(p, model.nextNumber), color: model.color, unit: model.unit))
         case .question:
@@ -176,7 +190,8 @@ final class CanvasView: NSView, NSTextFieldDelegate {
             draft = Annotation(kind: .pen(penPoints), color: model.color, unit: model.unit)
             needsDisplay = true
         case .text:
-            beginText(at: p, initial: "", color: model.color)
+            model.selectedID = nil
+            beginText(at: p)
         default:
             dragStart = p
         }
@@ -269,39 +284,125 @@ final class CanvasView: NSView, NSTextFieldDelegate {
         return CGPoint(x: a.x + cos(snapped) * len, y: a.y + sin(snapped) * len)
     }
 
+    // MARK: Grabbing marks
+
+    /// Whether a click on `a` grabs it (select + drag) instead of drawing something new.
+    /// Texts can be grabbed with any tool except the pen and crop; with Select and Text tools
+    /// every mark can.
+    private func canGrab(_ a: Annotation) -> Bool {
+        switch model.tool {
+        case .select, .text: true
+        case .pen, .crop: false
+        default: a.isText
+        }
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect, .cursorUpdate],
+                                       owner: self, userInfo: nil))
+    }
+
+    // An open hand over a mark that a click would grab.
+    override func mouseMoved(with event: NSEvent) {
+        let p = toImage(convert(event.locationInWindow, from: nil))
+        if model.tool != .select, let hit = model.annotations.last(where: { $0.hitTest(p) }), canGrab(hit) {
+            NSCursor.openHand.set()
+        } else {
+            window?.invalidateCursorRects(for: self)
+            cursorForTool.set()
+        }
+    }
+
+    private var cursorForTool: NSCursor {
+        switch model.tool {
+        case .select: .arrow
+        case .text: .iBeam
+        default: .crosshair
+        }
+    }
+
     // MARK: Text
 
-    private func beginText(at p: CGPoint, initial: String, color: NSColor) {
+    /// The text being typed, drawn by the canvas exactly like the final mark (outline included);
+    /// the NSTextField on top is invisible apart from its caret and selection.
+    private var textDraft: Annotation? {
+        guard let field = textField, let origin = textOrigin, !field.stringValue.isEmpty else { return nil }
+        var a = Annotation(kind: .text(origin, field.stringValue), color: textColor, unit: textUnit)
+        if let editingID { a.id = editingID }
+        return a
+    }
+
+    private func beginText(at p: CGPoint) {
+        startTextField(origin: p, initial: "", color: model.color, unit: model.unit, editing: nil)
+    }
+
+    private func beginText(editing a: Annotation) {
+        guard case let .text(origin, string) = a.kind else { return }
+        model.selectedID = nil
+        startTextField(origin: origin, initial: string, color: a.color, unit: a.unit, editing: a.id)
+    }
+
+    private func startTextField(origin: CGPoint, initial: String, color: NSColor, unit: CGFloat, editing: UUID?) {
         let field = NSTextField(string: initial)
         field.isBordered = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.textColor = color
-        field.font = .systemFont(ofSize: 18 * model.unit * viewScale, weight: .bold)
+        field.textColor = .clear
+        field.usesSingleLineMode = false
+        field.cell?.wraps = false
+        field.cell?.isScrollable = false
+        field.maximumNumberOfLines = 0
         field.delegate = self
-        field.wantsLayer = true
-        field.layer?.borderWidth = 1
-        field.layer?.borderColor = NSColor.controlAccentColor.cgColor
-        field.layer?.cornerRadius = 3
         textField = field
-        textOrigin = p
+        textOrigin = origin
+        textColor = color
+        textUnit = unit
+        editingID = editing
+        textStyleBaseline = (model.color, model.size)
         addSubview(field)
         layoutTextField()
         window?.makeFirstResponder(field)
-        field.currentEditor()?.selectedRange = NSRange(location: initial.utf16.count, length: 0)
+        styleFieldEditor()
+        (field.currentEditor() as? NSTextView)?.selectedRange = NSRange(location: initial.utf16.count, length: 0)
+        needsDisplay = true
+    }
+
+    /// The field editor draws its own text in the control text colour; make it invisible so only the
+    /// canvas' live draft shows, keep a caret in the mark's colour and a faint selection.
+    private func styleFieldEditor() {
+        guard let editor = textField?.currentEditor() as? NSTextView else { return }
+        editor.textColor = .clear
+        editor.typingAttributes[.foregroundColor] = NSColor.clear
+        editor.insertionPointColor = textColor.isLight ? .white : textColor
+        editor.selectedTextAttributes = [.backgroundColor: NSColor.controlAccentColor.withAlphaComponent(0.3)]
     }
 
     private func layoutTextField() {
         guard let field = textField, let origin = textOrigin else { return }
-        field.sizeToFit()
+        let fontSize = 18 * textUnit
+        field.font = .systemFont(ofSize: fontSize * viewScale, weight: .bold)
+        let text = field.stringValue.isEmpty ? " " : field.stringValue
+        let size = (text as NSString).size(withAttributes: [.font: field.font!])
         let v = toView(origin)
-        // NSTextField draws its text ~2pt inside its frame.
-        field.frame = CGRect(x: v.x - 2, y: v.y, width: max(field.frame.width + 12, 40), height: field.frame.height)
+        // NSTextField draws its text ~2 pt inside its frame; keep the caret on the rendered glyphs.
+        field.frame = CGRect(x: v.x - 2, y: v.y, width: max(size.width + 16, 40), height: size.height + 2)
     }
 
-    func controlTextDidChange(_ obj: Notification) { layoutTextField() }
+    func controlTextDidChange(_ obj: Notification) {
+        styleFieldEditor()
+        layoutTextField()
+        needsDisplay = true
+    }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+        let newLine = selector == #selector(NSResponder.insertNewlineIgnoringFieldEditor(_:))
+            || (selector == #selector(NSResponder.insertNewline(_:)) && NSApp.currentEvent?.modifierFlags.contains(.shift) == true)
+        if newLine {
+            textView.insertText("\n", replacementRange: textView.selectedRange())
+            return true
+        }
         if selector == #selector(NSResponder.insertNewline(_:)) {
             commitText()
             return true
@@ -318,10 +419,20 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     private func commitText() {
         guard let field = textField, let origin = textOrigin else { return }
         let text = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        let color = field.textColor ?? model.color
+        let editing = editingID, color = textColor, unit = textUnit
         cancelText()
-        if !text.isEmpty {
-            model.add(Annotation(kind: .text(origin, text), color: color, unit: model.unit))
+        if let editing, let i = model.annotations.firstIndex(where: { $0.id == editing }) {
+            // One undo step: change the text in place, or remove it when emptied.
+            if text.isEmpty {
+                model.commit { model.annotations.remove(at: i) }
+            } else {
+                model.commit { model.annotations[i].kind = .text(origin, text) }
+                model.selectedID = editing
+            }
+        } else if !text.isEmpty {
+            let a = Annotation(kind: .text(origin, text), color: color, unit: unit)
+            model.add(a)
+            model.selectedID = a.id
         }
     }
 
@@ -329,9 +440,12 @@ final class CanvasView: NSView, NSTextFieldDelegate {
         guard let field = textField else { return }
         textField = nil
         textOrigin = nil
+        editingID = nil
+        textStyleBaseline = nil
         field.delegate = nil
         field.removeFromSuperview()
         window?.makeFirstResponder(self)
+        needsDisplay = true
     }
 
     override func layout() {
@@ -402,3 +516,30 @@ final class EditorScrollView: NSScrollView {
         if canvas.frame.size != size { canvas.setFrameSize(size) }
     }
 }
+
+// MARK: Self-test hooks
+
+extension CanvasView {
+    var debugIsEditingText: Bool { textField != nil }
+
+    /// Types into the text being edited, like the keyboard would.
+    func debugType(_ text: String) {
+        guard let field = textField else { return }
+        if let editor = field.currentEditor() as? NSTextView {
+            editor.string = text // like keystrokes: caret at the end, nothing selected
+            editor.selectedRange = NSRange(location: text.utf16.count, length: 0)
+        } else {
+            field.stringValue = text
+        }
+        controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
+    }
+
+    func debugCommitText() { commitText() }
+
+    /// View point (canvas coordinates) of an image point.
+    func debugViewPoint(_ p: CGPoint) -> CGPoint {
+        let d = displayRect, s = viewScale
+        return CGPoint(x: (p.x - model.crop.minX) * s + d.minX, y: (p.y - model.crop.minY) * s + d.minY)
+    }
+}
+

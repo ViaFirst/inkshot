@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.0 — 2026-11-03
+- Text: typed in its final look, drag it with any tool (except pen/crop), double-click edits in place (one undo step), ⌥↩/⇧↩ new line, a click elsewhere starts the next text, toolbar colour/size apply while typing.
+
 ## 0.9.0 — 2026-10-25
 - Editor: freehand pen (P), question mark (Q) and cross (X) — click for a default X, drag to cross out an area.
 

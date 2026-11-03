@@ -10,6 +10,8 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
     private let model: EditorModel
     private let history: HistoryStore
     private let canvas: CanvasView
+    var debugCanvas: CanvasView { canvas }
+    var debugModel: EditorModel { model }
     private var pasteboardWork: DispatchWorkItem?
     private let capturedAt: Date
 
